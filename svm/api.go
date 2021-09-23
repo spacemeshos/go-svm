@@ -1,5 +1,15 @@
 package svm
 
+/*
+#cgo LDFLAGS: -L ${SRCDIR}/../artifacts -lsvm
+#include "svm.h"
+#include "memory.h"
+*/
+import "C"
+import (
+	"unsafe"
+)
+
 // TODO: we might want to guard calling `Init` with a Mutex.
 var initialized = false
 
@@ -27,7 +37,11 @@ func Init(inMemory bool, path string) error {
 		panic("`Init` can be called only once")
 	}
 
-	panic("TODO")
+	//rawPath := unsafe.Pointer(&path)
+	//byteLength := uint32(len(path))
+	//C.svm_init(inMemory, rawPath, byteLength)
+
+	return nil
 }
 
 // Asserts that `Init` has already been called.
@@ -46,20 +60,42 @@ func AssertInitialized() {
 // On success returns it and the `error` is set to `nil`.
 // On failure returns `(nil, error).
 func NewRuntime() (*Runtime, error) {
-	panic("TODO")
+	rt := &Runtime{}
+	C.svm_runtime_create(&rt.raw)
+
+	// TODO: add common functionality `svm_result_t`
+	return rt, nil
+}
+
+func RuntimesCount() int {
+	count := C.uint64_t(0)
+	C.svm_runtimes_count(&count)
+
+	return int(count)
+}
+
+func ReceiptsCount() int {
+	return 0
+	// count := C.uint32(0)
+	// result := C.svm_receipts_count(&count)
+	// return int(count)
 }
 
 // Releases the SVM Runtime
 func (rt *Runtime) Destroy() {
-	panic("TODO")
+	C.svm_runtime_destroy(rt.raw)
 }
 
 // Validates the `Deploy Message` given in its binary form.
 //
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
-func (rt *Runtime) ValidateDeploy(msg []byte) (bool, ValidateError) {
-	panic("TODO")
+func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	msgLen := (C.uint32_t)(uint32(len(msg)))
+	C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
+
+	return false, nil
 }
 
 // Executes a `Deploy` transaction and returns back a receipt.
