@@ -37,9 +37,10 @@ func Init(inMemory bool, path string) error {
 		panic("`Init` can be called only once")
 	}
 
-	//rawPath := unsafe.Pointer(&path)
-	//byteLength := uint32(len(path))
-	//C.svm_init(inMemory, rawPath, byteLength)
+	bytes := ([]byte)(path)
+	rawPath := (*C.uchar)(unsafe.Pointer(&bytes[0]))
+	pathLen := (C.uint32_t)(uint32(len(path)))
+	C.svm_init((C.bool)(inMemory), rawPath, pathLen)
 
 	return nil
 }
