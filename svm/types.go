@@ -40,6 +40,21 @@ const (
 	CallType   TxType = 2
 )
 
+/// Encoding of a binary [`Envelope`].
+///
+/// ```text
+///
+///  +-------------+--------------+----------------+----------------+----------------+----------------+
+///  |             |              |				   |                |                |				  |
+///  |  Principal  |    Amount    |   Nonce Upper  |   Nonce Lower  |   Gas Limit    |    Gas Fee 	  |
+///  |  (Address)  |    (u64)     |     (u64)      |     (u64)      |     (u64)	 	 |     (u64)	  |
+///  |             |              |                |                |				 |				  |
+///  |  20 bytes   |   8 bytes    |    8 bytes     |    8 bytes     |    8 bytes     |    8 bytes	  |
+///  |             | (Big-Endian) |  (Big-Endian)  |  (Big-Endian)  |  (Big-Endian)  |	(Big-Endian)  |
+///  |             |              |                |                |			     | 				  |
+///  +-------------+--------------+----------------+----------------+----------------+----------------+
+///
+
 // Holds the `Envelope` of a transaction.
 //
 // In other words, holds fields which are part of any transaction regardless of its type (i.e `Deploy/Spawn/Call`).

@@ -84,7 +84,9 @@ func ReceiptsCount() int {
 
 // Releases the SVM Runtime
 func (rt *Runtime) Destroy() {
-	C.svm_runtime_destroy(rt.raw)
+	if rt.raw != nil {
+		C.svm_runtime_destroy(rt.raw)
+	}
 }
 
 // Validates the `Deploy Message` given in its binary form.
@@ -111,7 +113,14 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
 func (rt *Runtime) Deploy(env Envelope, msg []byte, ctx Context) DeployReceipt {
-	panic("TODO")
+	bytes:= make([]byte)
+	bytes := append(bytes, env.Type)
+	bytes := append(bytes, env.Principal)
+	bytes := append(bytes, env.GasLimit)
+	bytes := append(bytes, binary.BigEndian.Uint64(env.GasFee))
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	msgLen := (C.uint32_t)(uint32(len(msg)))
+	C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
 }
 
 // Validates the `Spawn Message` given in its binary form.
