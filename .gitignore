@@ -1,4 +1,4 @@
-artifacts/
+artifacts/*
 !artifacts/.gitkeep
 svm/svm.h
 
