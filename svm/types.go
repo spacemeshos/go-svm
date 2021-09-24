@@ -10,6 +10,7 @@ const (
 	TxNonceLength int = 16
 	GasLength     int = 8
 	GasFeeLength  int = 8
+	LayerLength   int = 8
 )
 
 // Declaring types aliases used throughout the project.

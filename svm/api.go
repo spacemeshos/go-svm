@@ -284,3 +284,27 @@ func EncodeEnvelope(env *Envelope) []byte {
 
 	return bytes
 }
+
+/// ```text
+///  +-------------+--------------+
+///  |             |              |
+///  |    Layer    |    Tx Id     |
+///  |   (u64)     |    (Blob)    |
+///  |             |              |
+///  |  8 bytes    |   32 bytes   |
+///  |             | 			  |
+///  +-------------+--------------+
+/// ```
+func EncodeContext(ctx *Context) []byte {
+	bytes := make([]byte, LayerLength+TxIdLength)
+
+	// `Layer`
+	p := 0
+	binary.BigEndian.PutUint64(bytes[:LayerLength], (uint64)(ctx.Layer))
+
+	// `Tx Id`
+	p += LayerLength
+	copy(bytes[p:p+TxIdLength], ctx.TxId[:])
+
+	return bytes
+}
