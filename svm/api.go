@@ -111,17 +111,22 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Deploy(env Envelope, msg []byte, ctx Context) DeployReceipt {
-	// bytes:= make([]byte)
-	// bytes := append(bytes, env.Type)
-	// bytes := append(bytes, env.Principal)
-	// bytes := append(bytes, binary.BigEndian.Uint64(env.GasLimit))
-	// bytes := append(bytes, binary.BigEndian.Uint64(env.GasFee))
-	// rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
-	// msgLen := (C.uint32_t)(uint32(len(msg)))
-	// C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
+func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) DeployReceipt {
+	// `Envelope`
+	rawEnv := EncodeEnvelope(env)
+	rawEnv = (*C.uchar)(unsafe.Pointer(&rawEnv[0]))
 
-	panic("..")
+	// `Message`
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	rawMsgLen := (C.uint32_t)(uint32(len(rawMsg)))
+
+	// `Context`
+	rawCtx := EncodeContext(ctx)
+
+	// TODO: assert the results of `svm_validate_deploy`
+	C.svm_validate_deploy(rt.raw, rawEnv, rawMsg, rawMsgLen)
+
+	return nil
 }
 
 // Validates the `Spawn Message` given in its binary form.
