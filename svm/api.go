@@ -234,11 +234,11 @@ func (rt *Runtime) IncreaseBalance(addr Account, amount Amount) {
 	panic("TODO")
 }
 
-func NewEvelope(principal Address, amount Amount, nonce TxNonce, gasLimit Gas, gasFee GasFee) Envelope {
+func NewEvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) Envelope {
 	env := Envelope{}
 	env.Principal = principal
 	env.Amount = amount
-	env.Nonce = nonce
+	env.TxNonce = txNonce
 	env.GasLimit = gasLimit
 	env.GasFee = gasFee
 	return env
@@ -267,20 +267,20 @@ func EncodeEnvelope(env *Envelope) []byte {
 
 	// `Amount`
 	p := AddressLength
-	binary.BigEndian.PutUint64(bytes[p:p+AmountLength], env.Amount)
+	binary.BigEndian.PutUint64(bytes[p:p+AmountLength], (uint64)(env.Amount))
 
 	// `Tx Nonce`
 	p += TxNonceLength
-	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], env.TxNonce.Upper)
-	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], env.TxNonce.Lower)
+	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], (uint64)(env.TxNonce.Upper))
+	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], (uint64)(env.TxNonce.Lower))
 
 	// `Gas Limit`
 	p += GasLength
-	binary.BigEndian.PutUint64(bytes[p:p+GasLength], env.GasLimit)
+	binary.BigEndian.PutUint64(bytes[p:p+GasLength], (uint64)(env.GasLimit))
 
 	// `Gas Fee`
 	p += GasFeeLength
-	binary.BigEndian.PutUint64(bytes[p:p+GasFeeLength], env.GasFee)
+	binary.BigEndian.PutUint64(bytes[p:p+GasFeeLength], (uint64)(env.GasFee))
 
 	return bytes
 }
