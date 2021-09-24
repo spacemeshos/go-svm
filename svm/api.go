@@ -33,7 +33,7 @@ var initialized = false
 // Panics when `Init` has already been called.
 func Init(inMemory bool, path string) error {
 	if initialized {
-		panic("`Init` can be called only once")
+		panic("`Init` can be called only once.")
 	}
 
 	bytes := ([]byte)(path)
