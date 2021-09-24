@@ -7,13 +7,12 @@ package svm
 */
 import "C"
 import (
+	"encoding/binary"
 	"unsafe"
 )
 
 // TODO: we might want to guard calling `Init` with a Mutex.
 var initialized = false
-
-type StateDigest = [32]byte
 
 // `Init` should be called exactly once before interacting with any other API of SVM.
 // Each future call to `NewRuntime` (see later) assumes the settings given the `Init` call.
@@ -113,14 +112,16 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
 func (rt *Runtime) Deploy(env Envelope, msg []byte, ctx Context) DeployReceipt {
-	bytes:= make([]byte)
-	bytes := append(bytes, env.Type)
-	bytes := append(bytes, env.Principal)
-	bytes := append(bytes, env.GasLimit)
-	bytes := append(bytes, binary.BigEndian.Uint64(env.GasFee))
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
-	msgLen := (C.uint32_t)(uint32(len(msg)))
-	C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
+	// bytes:= make([]byte)
+	// bytes := append(bytes, env.Type)
+	// bytes := append(bytes, env.Principal)
+	// bytes := append(bytes, binary.BigEndian.Uint64(env.GasLimit))
+	// bytes := append(bytes, binary.BigEndian.Uint64(env.GasFee))
+	// rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	// msgLen := (C.uint32_t)(uint32(len(msg)))
+	// C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
+
+	panic("..")
 }
 
 // Validates the `Spawn Message` given in its binary form.
@@ -203,7 +204,7 @@ func (rt *Runtime) Open(layer Layer) error {
 // Rewinds the `SVM Global State` back to the input `layer`.
 //
 // In case there is no such layer to rewind to - returns an `error`.
-func (rt *Runtime) Rewind(layer Layer) (StateDigest, error) {
+func (rt *Runtime) Rewind(layer Layer) (State, error) {
 	panic("TODO")
 }
 
@@ -212,7 +213,7 @@ func (rt *Runtime) Rewind(layer Layer) (StateDigest, error) {
 // In other words, returns the `layer` associated with the just-committed changes.
 //
 // In case commits fails (for example, persisting to disk failure) - returns `(0, error)`
-func (rt *Runtime) Commit() (Layer, StateDigest, error) {
+func (rt *Runtime) Commit() (Layer, State, error) {
 	panic("TODO")
 }
 
@@ -231,4 +232,55 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 // * `amount` - The `Amount` by which we are going to increase the account's balance.
 func (rt *Runtime) IncreaseBalance(addr Account, amount Amount) {
 	panic("TODO")
+}
+
+func NewEvelope(principal Address, amount Amount, nonce TxNonce, gasLimit Gas, gasFee GasFee) Envelope {
+	env := Envelope{}
+	env.Principal = principal
+	env.Amount = amount
+	env.Nonce = nonce
+	env.GasLimit = gasLimit
+	env.GasFee = gasFee
+	return env
+}
+
+//
+// In other words, holds fields which are part of any transaction regardless of its type (i.e `Deploy/Spawn/Call`).
+/// Encoding of a binary [`Envelope`].
+///
+/// ```text
+///  +-------------+--------------+----------------+----------------+----------------+
+///  |             |              |			       |                |				 |
+///  |  Principal  |    Amount    |    Tx Nonce    |   Gas Limit    |    Gas Fee 	 |
+///  |  (Address)  |    (u64)     |     (u128)     |     (u64)      |     (u64)	 	 |
+///  |             |              |                |                |				 |
+///  |  20 bytes   |   8 bytes    |    16 bytes    |    8 bytes     |    8 bytes     |
+///  |             | (Big-Endian) |  (Big-Endian)  |  (Big-Endian)  |  (Big-Endian)  |
+///  |             |              |                |                |			     |
+///  +-------------+--------------+----------------+----------------+----------------+
+/// ```
+func EncodeEnvelope(env *Envelope) []byte {
+	bytes := make([]byte, AddressLength+AmountLength+TxNonceLength+GasLength+GasFeeLength)
+
+	// `Principal`
+	copy(bytes[:AddressLength], env.Principal[:])
+
+	// `Amount`
+	p := AddressLength
+	binary.BigEndian.PutUint64(bytes[p:p+AmountLength], env.Amount)
+
+	// `Tx Nonce`
+	p += TxNonceLength
+	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], env.TxNonce.Upper)
+	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], env.TxNonce.Lower)
+
+	// `Gas Limit`
+	p += GasLength
+	binary.BigEndian.PutUint64(bytes[p:p+GasLength], env.GasLimit)
+
+	// `Gas Fee`
+	p += GasFeeLength
+	binary.BigEndian.PutUint64(bytes[p:p+GasFeeLength], env.GasFee)
+
+	return bytes
 }
