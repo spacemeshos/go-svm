@@ -3,14 +3,16 @@ package svm
 import "unsafe"
 
 const (
-	AddressLength int = 20
-	TxIdLength    int = 32
-	StateLength   int = 32
-	AmountLength  int = 8
-	TxNonceLength int = 16
-	GasLength     int = 8
-	GasFeeLength  int = 8
-	LayerLength   int = 8
+	AddressLength  int = 20
+	TxIdLength     int = 32
+	StateLength    int = 32
+	AmountLength   int = 8
+	TxNonceLength  int = 16
+	GasLength      int = 8
+	GasFeeLength   int = 8
+	LayerLength    int = 8
+	EnvelopeLength int = AddressLength + AmountLength + TxNonceLength + GasLength + GasFeeLength
+	ContextLength  int = LayerLength + TxIdLength
 )
 
 // Declaring types aliases used throughout the project.

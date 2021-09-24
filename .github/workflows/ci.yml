@@ -3,9 +3,7 @@ name: Go-SVM's CI
 on: [push, pull_request]
 
 jobs:
-  lints:
-    strategy:
-      fail-fast: False
+  test:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2

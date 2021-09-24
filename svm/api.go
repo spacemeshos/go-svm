@@ -8,8 +8,30 @@ package svm
 import "C"
 import (
 	"encoding/binary"
+	"errors"
 	"unsafe"
 )
+
+func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
+	size := int(uint32(C.uint32_t(res.buf_size)))
+
+	var receipt []byte = nil
+	var err error = nil
+
+	if res.receipt != nil {
+		receipt = make([]byte, size)
+		copy(receipt[:], *(*[]byte)(unsafe.Pointer(res.receipt)))
+	} else if res.error != nil {
+		bytes := make([]byte, size)
+		copy(bytes[:], *(*[]byte)(unsafe.Pointer(res.error)))
+		err = errors.New(string(bytes))
+	}
+
+	C.free(unsafe.Pointer(res.receipt))
+	C.free(unsafe.Pointer(res.error))
+
+	return receipt, err
+}
 
 // TODO: we might want to guard calling `Init` with a Mutex.
 var initialized = false
@@ -39,7 +61,8 @@ func Init(inMemory bool, path string) error {
 	bytes := ([]byte)(path)
 	rawPath := (*C.uchar)(unsafe.Pointer(&bytes[0]))
 	pathLen := (C.uint32_t)(uint32(len(path)))
-	C.svm_init((C.bool)(inMemory), rawPath, pathLen)
+	var res C.struct_svm_result_t = C.svm_init((C.bool)(inMemory), rawPath, pathLen)
+	copySvmResult(res)
 
 	return nil
 }
@@ -61,10 +84,10 @@ func AssertInitialized() {
 // On failure returns `(nil, error).
 func NewRuntime() (*Runtime, error) {
 	rt := &Runtime{}
-	C.svm_runtime_create(&rt.raw)
+	res := C.svm_runtime_create(&rt.raw)
+	_, err := copySvmResult(res)
 
-	// TODO: add common functionality `svm_result_t`
-	return rt, nil
+	return rt, err
 }
 
 func RuntimesCount() int {
@@ -113,20 +136,31 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 // A Receipt is always being returned, even if there was an internal error inside SVM.
 func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) DeployReceipt {
 	// `Envelope`
-	rawEnv := EncodeEnvelope(env)
-	rawEnv = (*C.uchar)(unsafe.Pointer(&rawEnv[0]))
+	envBytes := EncodeEnvelope(env)
+	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes[0]))
 
 	// `Message`
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
-	rawMsgLen := (C.uint32_t)(uint32(len(rawMsg)))
+	msgPtr := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	msgLen := (C.uint32_t)(uint32(len(msg)))
 
 	// `Context`
-	rawCtx := EncodeContext(ctx)
+	ctxBytes := EncodeContext(ctx)
+	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes[0]))
 
-	// TODO: assert the results of `svm_validate_deploy`
-	C.svm_validate_deploy(rt.raw, rawEnv, rawMsg, rawMsgLen)
+	res := C.svm_deploy(rt.raw, envPtr, msgPtr, msgLen, ctxPtr)
+	_, err := copySvmResult(res)
+	if err != nil {
+		panic(err)
+	}
 
-	return nil
+	// TODO
+	return DeployReceipt{
+		Success:      true,
+		Error:        RuntimeError{},
+		TemplateAddr: TemplateAddr{0},
+		GasUsed:      Gas(0),
+		Logs:         make([]Log, 0),
+	}
 }
 
 // Validates the `Spawn Message` given in its binary form.
@@ -264,8 +298,8 @@ func NewEvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas,
 ///  |             |              |                |                |			     |
 ///  +-------------+--------------+----------------+----------------+----------------+
 /// ```
-func EncodeEnvelope(env *Envelope) []byte {
-	bytes := make([]byte, AddressLength+AmountLength+TxNonceLength+GasLength+GasFeeLength)
+func EncodeEnvelope(env *Envelope) [EnvelopeLength]byte {
+	bytes := [EnvelopeLength]byte{0}
 
 	// `Principal`
 	copy(bytes[:AddressLength], env.Principal[:])
@@ -300,8 +334,8 @@ func EncodeEnvelope(env *Envelope) []byte {
 ///  |             | 			  |
 ///  +-------------+--------------+
 /// ```
-func EncodeContext(ctx *Context) []byte {
-	bytes := make([]byte, LayerLength+TxIdLength)
+func EncodeContext(ctx *Context) [ContextLength]byte {
+	bytes := [ContextLength]byte{0}
 
 	// `Layer`
 	p := 0
