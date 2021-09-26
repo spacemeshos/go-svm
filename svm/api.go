@@ -16,18 +16,17 @@ import (
 )
 
 func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
-	size := int(uint32(C.uint32_t(res.buf_size)))
+	size := C.int(res.buf_size)
 
 	var receipt []byte = nil
 	var err error = nil
 
 	if res.receipt != nil {
-		receipt = make([]byte, size)
-		copy(receipt[:], *(*[]byte)(unsafe.Pointer(res.receipt)))
+		ptr := unsafe.Pointer(res.receipt)
+		receipt = C.GoBytes(ptr, size)
 	} else if res.error != nil {
-		bytes := make([]byte, size)
-		copy(bytes[:], *(*[]byte)(unsafe.Pointer(res.error)))
-		err = errors.New(string(bytes))
+		ptr := unsafe.Pointer(res.error)
+		err = errors.New(string(C.GoBytes(ptr, size)))
 	}
 
 	C.free(unsafe.Pointer(res.receipt))
@@ -39,8 +38,11 @@ func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
 // TODO: we might want to guard calling `Init` with a Mutex.
 var initialized = false
 
-// `Init` should be called exactly once before interacting with any other API of SVM.
+// `Init` should be called at least once before interacting with any other API of SVM.
 // Each future call to `NewRuntime` (see later) assumes the settings given the `Init` call.
+//
+// Please note that this function is idempotent and won't do anything after the
+// first call.
 //
 // # Params
 //
@@ -51,18 +53,13 @@ var initialized = false
 // # Returns
 //
 // Returns an error in case the initialization has failed.
-//
-//
-// # Panics
-//
-// Panics when `Init` has already been called.
 func Init(inMemory bool, path string) error {
 	if initialized {
-		panic("`Init` can be called only once.")
+		return nil
 	}
 
 	bytes := ([]byte)(path)
-	rawPath := (*C.uchar)(unsafe.Pointer(&bytes[0]))
+	rawPath := (*C.uchar)(unsafe.Pointer(&bytes))
 	pathLen := (C.uint32_t)(uint32(len(path)))
 	var res C.struct_svm_result_t = C.svm_init((C.bool)(inMemory), rawPath, pathLen)
 	copySvmResult(res)
@@ -119,11 +116,12 @@ func (rt *Runtime) Destroy() {
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
 func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
 	msgLen := (C.uint32_t)(uint32(len(msg)))
-	C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
+	res := C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
+	_, err := copySvmResult(res)
 
-	return false, nil
+	return err == nil, err
 }
 
 // Executes a `Deploy` transaction and returns back a receipt.
@@ -140,15 +138,15 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) DeployReceipt {
 	// `Envelope`
 	envBytes := EncodeEnvelope(env)
-	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes[0]))
+	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
 
 	// `Message`
-	msgPtr := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	msgPtr := (*C.uchar)(unsafe.Pointer(&msg))
 	msgLen := (C.uint32_t)(uint32(len(msg)))
 
 	// `Context`
 	ctxBytes := EncodeContext(ctx)
-	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes[0]))
+	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes))
 
 	res := C.svm_deploy(rt.raw, envPtr, msgPtr, msgLen, ctxPtr)
 	_, err := copySvmResult(res)
