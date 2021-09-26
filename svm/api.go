@@ -117,7 +117,7 @@ func (rt *Runtime) Destroy() {
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
 func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(uint32(len(msg)))
+	msgLen := (C.uint32_t)(len(msg))
 	res := C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
 	_, err := copySvmResult(res)
 
@@ -168,8 +168,20 @@ func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) DeployReceipt
 //
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
-func (rt *Runtime) ValidateSpawn(msg []byte) (bool, ValidateError) {
-	panic("TODO")
+func (rt *Runtime) ValidateSpawn(msg []byte) (bool, *ValidateError) {
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
+	msgLen := (C.uint32_t)(len(msg))
+	res := C.svm_validate_spawn(rt.raw, rawMsg, msgLen)
+	_, err := copySvmResult(res)
+
+	if err == nil {
+		return true, nil
+	} else {
+		return false, &ValidateError{
+			Kind:    ParseError,
+			Message: err.Error(),
+		}
+	}
 }
 
 // Executes a `Spawn` transaction and returns back a receipt.
@@ -192,8 +204,20 @@ func (rt *Runtime) Spawn(env Envelope, msg []byte, ctx Context) SpawnReceipt {
 //
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
-func (rt *Runtime) ValidateCall(msg []byte) (bool, ValidateError) {
-	panic("TODO")
+func (rt *Runtime) ValidateCall(msg []byte) (bool, *ValidateError) {
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
+	msgLen := (C.uint32_t)(len(msg))
+	res := C.svm_validate_call(rt.raw, rawMsg, msgLen)
+	_, err := copySvmResult(res)
+
+	if err == nil {
+		return true, nil
+	} else {
+		return false, &ValidateError{
+			Kind:    ParseError,
+			Message: err.Error(),
+		}
+	}
 }
 
 // Executes a `Call` transaction and returns back a receipt.
