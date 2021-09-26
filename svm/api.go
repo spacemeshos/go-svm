@@ -1,7 +1,10 @@
 package svm
 
 /*
-#cgo LDFLAGS: -L ${SRCDIR}/../artifacts -lsvm
+#cgo CFLAGS: -I.
+#cgo linux amd64 LDFLAGS: -L ${SRCDIR}/../artifacts/bins-Linux-release/ -lsvm -ldl -lm
+#cgo windows amd64 LDFLAGS: -L ${SRCDIR}/../artifacts/bins-Windows-release/ -lsvm -ldl -lm
+#cgo darwin amd64 LDFLAGS: -L ${SRCDIR}/../artifacts/bins-macOS-release/ -lsvm -ldl -lm
 #include "svm.h"
 #include "memory.h"
 */
