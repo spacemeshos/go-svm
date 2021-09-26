@@ -18,8 +18,8 @@ import (
 func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
 	size := C.int(res.buf_size)
 
-	var receipt []byte = nil
-	var err error = nil
+	receipt := ([]byte)(nil)
+	err := (error)(nil)
 
 	if res.receipt != nil {
 		ptr := unsafe.Pointer(res.receipt)
