@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Download SVM artifacts
         run: |
+          set -e
           gh auth login < $GITHUB_TOKEN
           ./download_artifacts.sh
       - working-directory: svm
