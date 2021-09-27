@@ -4,7 +4,7 @@ package svm
 #cgo CFLAGS: -I.
 #cgo linux LDFLAGS: ${SRCDIR}/artifacts/bins-Linux-release/libsvm.a -lm -ldl
 #cgo darwin LDFLAGS: ${SRCDIR}/artifacts/bins-macOS-release/libsvm.a -lm -ldl -framework Security -framework Foundation
-#cgo windows LDFLAGS: ${SRCDIR}/artifacts/bins-Windows-release/svm.lib -lm -ldl
+#cgo windows LDFLAGS: -L ${SRCDIR}/artifacts/bins-Windows-release/ -lsvm -lm -ldl
 #include "svm.h"
 #include "memory.h"
 */
