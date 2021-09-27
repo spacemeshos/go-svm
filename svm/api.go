@@ -294,7 +294,7 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 //
 // * `addr`   - The `Account Address` we want to increase its balance.
 // * `amount` - The `Amount` by which we are going to increase the account's balance.
-func (rt *Runtime) IncreaseBalance(addr Account, amount Amount) {
+func (rt *Runtime) IncreaseBalance(addr Address, amount Amount) {
 	panic("TODO")
 }
 
