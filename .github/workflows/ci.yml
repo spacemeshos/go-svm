@@ -11,6 +11,8 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    default:
+      shell: bash
     strategy:
       fail-fast: False
       matrix:
