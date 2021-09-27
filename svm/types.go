@@ -2,14 +2,28 @@ package svm
 
 import "unsafe"
 
+const (
+	AddressLength  int = 20
+	TxIdLength     int = 32
+	StateLength    int = 32
+	AmountLength   int = 8
+	TxNonceLength  int = 16
+	GasLength      int = 8
+	GasFeeLength   int = 8
+	LayerLength    int = 8
+	EnvelopeLength int = AddressLength + AmountLength + TxNonceLength + GasLength + GasFeeLength
+	ContextLength  int = LayerLength + TxIdLength
+)
+
 // Declaring types aliases used throughout the project.
 type TxType uint8
 type Amount uint64
-type Address [20]byte
-type TemplateAddr [20]byte
-type TxId [32]byte
-type State [32]byte
+type Address [AddressLength]byte
+type TemplateAddr [AddressLength]byte
+type TxId [TxIdLength]byte
+type State [StateLength]byte
 type Gas uint64
+type GasFee uint64
 type Layer uint64
 type Log []byte
 
@@ -25,10 +39,10 @@ type Context struct {
 	TxId  TxId
 }
 
-// Encapsulates an `Account Counter`. (Since `Golang` has no `unit128` primitive out-of-the-box).
+// Encapsulates a `Transaction Nonce`. (Since `Golang` has no `unit128` primitive out-of-the-box).
 //
-// Used for implementing the `Nonce Scheme` implemented within the `Template` associated with the `Account`
-type AccountCounter struct {
+// Used for implementing the `Nonce Scheme` implemented within the `Template` associated with the `Account`.
+type TxNonce struct {
 	Upper uint64
 	Lower uint64
 }
@@ -41,22 +55,20 @@ const (
 )
 
 // Holds the `Envelope` of a transaction.
-//
-// In other words, holds fields which are part of any transaction regardless of its type (i.e `Deploy/Spawn/Call`).
 type Envelope struct {
 	Type      TxType
 	Principal Address
 	Amount    Amount
-	Nonce     AccountCounter
-	GasLimit  uint64
-	GasFee    uint64
+	TxNonce   TxNonce
+	GasLimit  Gas
+	GasFee    GasFee
 }
 
 // Holds an `Account` basic information.
 type Account struct {
 	Addr    Address
 	Balance Amount
-	Counter AccountCounter
+	Counter TxNonce
 }
 
 // Holds the data returned after executing a `Deploy` transaction.

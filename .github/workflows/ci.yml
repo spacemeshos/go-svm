@@ -1,0 +1,30 @@
+name: Go-SVM's CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: False
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Download SVM artifacts
+        run: |
+          set -e
+          echo '${{ secrets.GITHUB_TOKEN }}' | gh auth login --with-token
+          ./download_artifacts.sh
+      - working-directory: svm
+        run: go test .
