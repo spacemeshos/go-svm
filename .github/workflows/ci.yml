@@ -17,7 +17,7 @@ jobs:
       - name: Download SVM artifacts
         run: |
           set -e
-          gh auth login --with-token < yes '${{ secrets.GITHUB_TOKEN }}'
+          gh auth login --with-token | yes '${{ secrets.GITHUB_TOKEN }}'
           ./download_artifacts.sh
       - working-directory: svm
         run: go test .
