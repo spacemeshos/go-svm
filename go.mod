@@ -1,4 +1,4 @@
-module go-svm
+module github.com/spacemeshos/go-svm
 
 go 1.15
 
