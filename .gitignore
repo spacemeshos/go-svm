@@ -1,5 +1,5 @@
-artifacts/*
-!artifacts/.gitkeep
+*/artifacts/*
+!*/artifacts/.gitkeep
 svm.h
 .DS_Store
 

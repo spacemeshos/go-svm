@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-rm -rf artifacts/
-mkdir -p artifacts/
-touch artifacts/.gitkeep
+rm -rf svm/artifacts/
+mkdir -p svm/artifacts/
+touch svm/artifacts/.gitkeep
 
 echo "Fetching the last successful SVM workflow run..."
 
@@ -13,10 +13,10 @@ LAST_SVM_WORKFLOW_RUN_ID=`gh run list --repo spacemeshos/svm --limit 1 | head -1
 
 echo "Done. Now downloading the artifacts. This might take up to a few minutes..."
 
-cd artifacts/
+cd svm/artifacts/
 gh run download $LAST_SVM_WORKFLOW_RUN_ID --repo spacemeshos/svm
 
-cp bins-Linux-release/svm.h ../svm/
+cp bins-Linux-release/svm.h ..
 cp bins-Linux-release/libsvm.so .
 cp bins-macOS-release/libsvm.dylib .
 cp bins-Windows-release/svm.dll .
