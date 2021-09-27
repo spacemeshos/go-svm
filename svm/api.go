@@ -288,6 +288,10 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 	panic("TODO")
 }
 
+func (rt *Runtime) CreateAccount(acc Account) error {
+	panic("TODO")
+}
+
 // Increases the balance of an Account (i.e printing coins)
 //
 // # Params
