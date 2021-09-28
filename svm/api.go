@@ -122,23 +122,16 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) DeployReceipt {
+func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) (*DeployReceipt, error) {
 	params := encodeSvmParams(env, msg, ctx)
 
 	res := C.svm_deploy(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
-	_, err := copySvmResult(res)
+	bytes, err := copySvmResult(res)
 	if err != nil {
 		panic(err)
 	}
 
-	// TODO
-	return DeployReceipt{
-		Success:      true,
-		Error:        RuntimeError{},
-		TemplateAddr: TemplateAddr{0},
-		GasUsed:      Gas(0),
-		Logs:         make([]Log, 0),
-	}
+	return decodeDeployReceipt(bytes)
 }
 
 // Validates the `Spawn Message` given in its binary form.
@@ -173,25 +166,16 @@ func (rt *Runtime) ValidateSpawn(msg []byte) (bool, *ValidateError) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Spawn(env *Envelope, msg []byte, ctx *Context) SpawnReceipt {
+func (rt *Runtime) Spawn(env *Envelope, msg []byte, ctx *Context) (*SpawnReceipt, error) {
 	params := encodeSvmParams(env, msg, ctx)
 
 	res := C.svm_spawn(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
-	_, err := copySvmResult(res)
+	bytes, err := copySvmResult(res)
 	if err != nil {
 		panic(err)
 	}
 
-	// TODO
-	return SpawnReceipt{
-		Success:         true,
-		Error:           RuntimeError{},
-		AccountAddr:     Address{0},
-		InitState:       State{},
-		GasUsed:         Gas(0),
-		Logs:            make([]Log, 0),
-		TouchedAccounts: nil,
-	}
+	return decodeSpawnReceipt(bytes)
 }
 
 // Validates the `Call Message` given in its binary form.
@@ -225,25 +209,16 @@ func (rt *Runtime) ValidateCall(msg []byte) (bool, *ValidateError) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) CallReceipt {
+func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, error) {
 	params := encodeSvmParams(env, msg, ctx)
 
 	res := C.svm_call(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
-	_, err := copySvmResult(res)
+	bytes, err := copySvmResult(res)
 	if err != nil {
 		panic(err)
 	}
 
-	// TODO
-	return CallReceipt{
-		Success:         true,
-		Error:           RuntimeError{},
-		NewState:        State{},
-		GasUsed:         Gas(0),
-		Logs:            make([]Log, 0),
-		TouchedAccounts: nil,
-	}
-	panic("TODO")
+	return decodeCallReceipt(bytes)
 }
 
 // Executes the `Verify` stage and returns back a receipt.
@@ -260,7 +235,7 @@ func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) CallReceipt {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Verify(env Envelope, msg []byte, ctx Context) CallReceipt {
+func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) CallReceipt {
 	panic("TODO")
 }
 
@@ -299,7 +274,7 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 	panic("TODO")
 }
 
-func (rt *Runtime) CreateAccount(acc Account) error {
+func (rt *Runtime) CreateAccount(account Account) error {
 	panic("TODO")
 }
 
@@ -313,14 +288,14 @@ func (rt *Runtime) IncreaseBalance(addr Address, amount Amount) {
 	panic("TODO")
 }
 
-func NewEvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) Envelope {
-	env := Envelope{}
-	env.Principal = principal
-	env.Amount = amount
-	env.TxNonce = txNonce
-	env.GasLimit = gasLimit
-	env.GasFee = gasFee
-	return env
+func NewEvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) *Envelope {
+	return &Envelope{
+		Principal: principal,
+		Amount:    amount,
+		TxNonce:   txNonce,
+		GasLimit:  gasLimit,
+		GasFee:    gasFee,
+	}
 }
 
 //
@@ -338,7 +313,7 @@ func NewEvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas,
 ///  |             |              |                |                |			     |
 ///  +-------------+--------------+----------------+----------------+----------------+
 /// ```
-func EncodeEnvelope(env *Envelope) [EnvelopeLength]byte {
+func encodeEnvelope(env *Envelope) [EnvelopeLength]byte {
 	bytes := [EnvelopeLength]byte{0}
 
 	// `Principal`
@@ -374,7 +349,7 @@ func EncodeEnvelope(env *Envelope) [EnvelopeLength]byte {
 ///  |             | 			  |
 ///  +-------------+--------------+
 /// ```
-func EncodeContext(ctx *Context) [ContextLength]byte {
+func encodeContext(ctx *Context) [ContextLength]byte {
 	bytes := [ContextLength]byte{0}
 
 	// `Layer`
@@ -389,13 +364,13 @@ func EncodeContext(ctx *Context) [ContextLength]byte {
 }
 
 func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) svmParams {
-	envBytes := EncodeEnvelope(env)
+	envBytes := encodeEnvelope(env)
 	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
 
 	msgPtr := (*C.uchar)(unsafe.Pointer(&msg))
 	msgLen := (C.uint32_t)(uint32(len(msg)))
 
-	ctxBytes := EncodeContext(ctx)
+	ctxBytes := encodeContext(ctx)
 	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes))
 
 	return svmParams{

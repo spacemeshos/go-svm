@@ -86,6 +86,7 @@ type SpawnReceipt struct {
 	Error           RuntimeError
 	AccountAddr     Address
 	InitState       State
+	ReturnData      []byte
 	GasUsed         Gas
 	Logs            []Log
 	TouchedAccounts []Address
