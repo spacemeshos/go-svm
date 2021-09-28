@@ -103,12 +103,9 @@ func (rt *Runtime) Destroy() {
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
 func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(len(msg))
-	res := C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
-	_, err := copySvmResult(res)
-
-	return err == nil, err
+	return runValidation(msg, func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t {
+		return C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
+	})
 }
 
 // Executes a `Deploy` transaction and returns back a receipt.
@@ -123,35 +120,25 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
 func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) (*DeployReceipt, error) {
-	params := encodeSvmParams(env, msg, ctx)
+	object, err := runAction(env, msg, ctx, func(params *svmParams) C.svm_result_t {
+		return C.svm_deploy(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	})
 
-	res := C.svm_deploy(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
-	bytes, err := copySvmResult(res)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return decodeDeployReceipt(bytes)
+	return object.(*DeployReceipt), nil
 }
 
 // Validates the `Spawn Message` given in its binary form.
 //
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
-func (rt *Runtime) ValidateSpawn(msg []byte) (bool, *ValidateError) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(len(msg))
-	res := C.svm_validate_spawn(rt.raw, rawMsg, msgLen)
-	_, err := copySvmResult(res)
-
-	if err == nil {
-		return true, nil
-	} else {
-		return false, &ValidateError{
-			Kind:    ParseError,
-			Message: err.Error(),
-		}
-	}
+func (rt *Runtime) ValidateSpawn(msg []byte) (bool, error) {
+	return runValidation(msg, func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t {
+		return C.svm_validate_spawn(rt.raw, rawMsg, msgLen)
+	})
 }
 
 // Executes a `Spawn` transaction and returns back a receipt.
@@ -167,35 +154,25 @@ func (rt *Runtime) ValidateSpawn(msg []byte) (bool, *ValidateError) {
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
 func (rt *Runtime) Spawn(env *Envelope, msg []byte, ctx *Context) (*SpawnReceipt, error) {
-	params := encodeSvmParams(env, msg, ctx)
+	object, err := runAction(env, msg, ctx, func(params *svmParams) C.svm_result_t {
+		return C.svm_spawn(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	})
 
-	res := C.svm_spawn(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
-	bytes, err := copySvmResult(res)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return decodeSpawnReceipt(bytes)
+	return object.(*SpawnReceipt), nil
 }
 
 // Validates the `Call Message` given in its binary form.
 //
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
-func (rt *Runtime) ValidateCall(msg []byte) (bool, *ValidateError) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(len(msg))
-	res := C.svm_validate_call(rt.raw, rawMsg, msgLen)
-	_, err := copySvmResult(res)
-
-	if err == nil {
-		return true, nil
-	} else {
-		return false, &ValidateError{
-			Kind:    ParseError,
-			Message: err.Error(),
-		}
-	}
+func (rt *Runtime) ValidateCall(msg []byte) (bool, error) {
+	return runValidation(msg, func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t {
+		return C.svm_validate_call(rt.raw, rawMsg, msgLen)
+	})
 }
 
 // Executes a `Call` transaction and returns back a receipt.
@@ -218,9 +195,7 @@ func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, 
 		return nil, err
 	}
 
-	receipt := object.(*CallReceipt)
-
-	return receipt, nil
+	return object.(*CallReceipt), nil
 }
 
 // Executes the `Verify` stage and returns back a receipt.
@@ -404,6 +379,7 @@ func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
 }
 
 type svmAction func(params *svmParams) C.svm_result_t
+type svmValidation func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t
 
 func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (interface{}, error) {
 	params := encodeSvmParams(env, msg, ctx)
@@ -415,4 +391,19 @@ func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (inter
 	}
 
 	return decodeReceipt(bytes)
+}
+
+func runValidation(msg []byte, validator svmValidation) (bool, error) {
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
+	msgLen := (C.uint32_t)(len(msg))
+
+	res := validator(rawMsg, msgLen)
+	_, err := copySvmResult(res)
+
+	if err == nil {
+		return true, nil
+	} else {
+		// TODO: return an `error`
+		return false, nil
+	}
 }
