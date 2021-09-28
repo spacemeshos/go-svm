@@ -210,15 +210,17 @@ func (rt *Runtime) ValidateCall(msg []byte) (bool, *ValidateError) {
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
 func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, error) {
-	params := encodeSvmParams(env, msg, ctx)
+	object, err := runAction(env, msg, ctx, func(params *svmParams) C.svm_result_t {
+		return C.svm_call(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	})
 
-	res := C.svm_call(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
-	bytes, err := copySvmResult(res)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return decodeCallReceipt(bytes)
+	receipt := object.(*CallReceipt)
+
+	return receipt, nil
 }
 
 // Executes the `Verify` stage and returns back a receipt.
@@ -235,7 +237,7 @@ func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, 
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) CallReceipt {
+func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) *CallReceipt {
 	panic("TODO")
 }
 
@@ -363,7 +365,7 @@ func encodeContext(ctx *Context) [ContextLength]byte {
 	return bytes
 }
 
-func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) svmParams {
+func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
 	envBytes := encodeEnvelope(env)
 	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
 
@@ -373,7 +375,7 @@ func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) svmParams {
 	ctxBytes := encodeContext(ctx)
 	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes))
 
-	return svmParams{
+	return &svmParams{
 		envPtr,
 		msgPtr,
 		msgLen,
@@ -399,4 +401,18 @@ func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
 	C.free(unsafe.Pointer(res.error))
 
 	return receipt, err
+}
+
+type svmAction func(params *svmParams) C.svm_result_t
+
+func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (interface{}, error) {
+	params := encodeSvmParams(env, msg, ctx)
+	res := action(params)
+	bytes, err := copySvmResult(res)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return decodeReceipt(bytes)
 }

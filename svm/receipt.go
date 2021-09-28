@@ -1,11 +1,17 @@
 package svm
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 // * One byte for `tx type`
 // * Two bytes for `version`
 // * One byte for `success`
 const ReceiptHeaderLength = 1 + 2 + 1
+
+func decodeReceipt(bytes []byte) (interface{}, error) {
+	return nil, nil
+}
 
 func decodeDeployReceipt(bytes []byte) (*DeployReceipt, error) {
 	receiptType, success := decodeReceiptHeader(bytes)
