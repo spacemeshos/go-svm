@@ -1,6 +1,5 @@
 */artifacts/*
 !*/artifacts/.gitkeep
-svm.h
 .DS_Store
 
 # Binaries for programs and plugins

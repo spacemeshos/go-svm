@@ -16,9 +16,4 @@ echo "Done. Now downloading the artifacts. This might take up to a few minutes..
 cd svm/artifacts/
 gh run download $LAST_SVM_WORKFLOW_RUN_ID --repo spacemeshos/svm
 
-cp bins-Linux-release/svm.h ..
-cp bins-Linux-release/libsvm.so .
-cp bins-macOS-release/libsvm.dylib .
-cp bins-Windows-release/svm.dll .
-
 exit 0
