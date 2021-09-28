@@ -15,24 +15,11 @@ import (
 	"unsafe"
 )
 
-func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
-	size := C.int(res.buf_size)
-
-	receipt := ([]byte)(nil)
-	err := (error)(nil)
-
-	if res.receipt != nil {
-		ptr := unsafe.Pointer(res.receipt)
-		receipt = C.GoBytes(ptr, size)
-	} else if res.error != nil {
-		ptr := unsafe.Pointer(res.error)
-		err = errors.New(string(C.GoBytes(ptr, size)))
-	}
-
-	C.free(unsafe.Pointer(res.receipt))
-	C.free(unsafe.Pointer(res.error))
-
-	return receipt, err
+type svmParams struct {
+	envPtr *C.uchar
+	msgPtr *C.uchar
+	msgLen C.uint32_t
+	ctxPtr *C.uchar
 }
 
 // TODO: we might want to guard calling `Init` with a Mutex.
@@ -136,19 +123,9 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
 func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) DeployReceipt {
-	// `Envelope`
-	envBytes := EncodeEnvelope(env)
-	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
+	params := encodeSvmParams(env, msg, ctx)
 
-	// `Message`
-	msgPtr := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(uint32(len(msg)))
-
-	// `Context`
-	ctxBytes := EncodeContext(ctx)
-	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes))
-
-	res := C.svm_deploy(rt.raw, envPtr, msgPtr, msgLen, ctxPtr)
+	res := C.svm_deploy(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
 	_, err := copySvmResult(res)
 	if err != nil {
 		panic(err)
@@ -196,8 +173,25 @@ func (rt *Runtime) ValidateSpawn(msg []byte) (bool, *ValidateError) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Spawn(env Envelope, msg []byte, ctx Context) SpawnReceipt {
-	panic("TODO")
+func (rt *Runtime) Spawn(env *Envelope, msg []byte, ctx *Context) SpawnReceipt {
+	params := encodeSvmParams(env, msg, ctx)
+
+	res := C.svm_spawn(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	_, err := copySvmResult(res)
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO
+	return SpawnReceipt{
+		Success:         true,
+		Error:           RuntimeError{},
+		AccountAddr:     Address{0},
+		InitState:       State{},
+		GasUsed:         Gas(0),
+		Logs:            make([]Log, 0),
+		TouchedAccounts: nil,
+	}
 }
 
 // Validates the `Call Message` given in its binary form.
@@ -231,7 +225,24 @@ func (rt *Runtime) ValidateCall(msg []byte) (bool, *ValidateError) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Call(env Envelope, msg []byte, ctx Context) CallReceipt {
+func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) CallReceipt {
+	params := encodeSvmParams(env, msg, ctx)
+
+	res := C.svm_call(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	_, err := copySvmResult(res)
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO
+	return CallReceipt{
+		Success:         true,
+		Error:           RuntimeError{},
+		NewState:        State{},
+		GasUsed:         Gas(0),
+		Logs:            make([]Log, 0),
+		TouchedAccounts: nil,
+	}
 	panic("TODO")
 }
 
@@ -375,4 +386,42 @@ func EncodeContext(ctx *Context) [ContextLength]byte {
 	copy(bytes[p:p+TxIdLength], ctx.TxId[:])
 
 	return bytes
+}
+
+func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) svmParams {
+	envBytes := EncodeEnvelope(env)
+	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
+
+	msgPtr := (*C.uchar)(unsafe.Pointer(&msg))
+	msgLen := (C.uint32_t)(uint32(len(msg)))
+
+	ctxBytes := EncodeContext(ctx)
+	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes))
+
+	return svmParams{
+		envPtr,
+		msgPtr,
+		msgLen,
+		ctxPtr,
+	}
+}
+
+func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
+	size := C.int(res.buf_size)
+
+	receipt := ([]byte)(nil)
+	err := (error)(nil)
+
+	if res.receipt != nil {
+		ptr := unsafe.Pointer(res.receipt)
+		receipt = C.GoBytes(ptr, size)
+	} else if res.error != nil {
+		ptr := unsafe.Pointer(res.error)
+		err = errors.New(string(C.GoBytes(ptr, size)))
+	}
+
+	C.free(unsafe.Pointer(res.receipt))
+	C.free(unsafe.Pointer(res.error))
+
+	return receipt, err
 }
