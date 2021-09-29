@@ -21,8 +21,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-      - name: Test go-svm
-        run: |
-          set -e
-          export GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}'
-          go run mage.go test
+      - run: go run mage.go test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
