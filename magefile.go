@@ -13,7 +13,6 @@ import (
 
 	"github.com/kardianos/osext"
 	"github.com/magefile/mage/mg"
-	"github.com/magefile/mage/sh"
 )
 
 func DownloadArtifactsToDir(dir string) error {
@@ -38,11 +37,7 @@ func DownloadArtifactsToDir(dir string) error {
 }
 
 func Build() error {
-	here, err := osext.ExecutableFolder()
-	if err != nil {
-		return err
-	}
-
+	here, _ := osext.ExecutableFolder()
 	dir := filepath.Join(here, "svm", "artifacts")
 	mg.Deps(mg.F(DownloadArtifactsToDir, dir))
 
@@ -56,22 +51,28 @@ func Build() error {
 		os.Setenv("LD_LIBRARY_PATH", ldVar)
 	}
 
-	return sh.Run("go", "mod", "download")
+	cmd := exec.Command("go", "mod", "download")
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
 }
 
 func Install() error {
 	mg.Deps(Build)
 
-	return sh.Run("go", "install", "./...")
+	cmd := exec.Command("go", "install", "./...")
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
 }
 
 func Test() error {
 	mg.Deps(Build)
 	mg.Deps(Install)
 
+	fmt.Printf("LD_LIBRARY_PATH IS %s\n\n", os.Getenv("LD_LIBRARY_PATH"))
+
 	cmd := exec.Command("go", "test", "-p", "1", ".")
-	cmd.Dir = filepath.Join(".", "svm")
-	fmt.Printf("LD IS %s\n", os.Getenv("LD_LIBRARY_PATH"))
+	here, _ := osext.ExecutableFolder()
+	cmd.Dir = filepath.Join(here, "svm")
 	cmd.Stdout = os.Stdout
 	err := cmd.Run()
 
