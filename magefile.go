@@ -44,6 +44,7 @@ func DownloadArtifactsToDir(dir string) error {
 	script := "cmd/svm-download-artifacts/svm-download-artifacts.go"
 	token := os.Getenv("GITHUB_TOKEN")
 	cmd := exec.Command("go", "run", script, "--token", token, "--dest", dir)
+	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
