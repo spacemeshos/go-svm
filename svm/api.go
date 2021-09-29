@@ -25,7 +25,7 @@ type svmParams struct {
 // TODO: we might want to guard calling `Init` with a Mutex.
 var initialized = false
 
-// `Init` should be called at least once before interacting with any other API of SVM.
+// `Init` must be called at least once before interacting with any other API of SVM.
 // Each future call to `NewRuntime` (see later) assumes the settings given the `Init` call.
 //
 // Please note that this function is idempotent and won't do anything after the
@@ -48,8 +48,10 @@ func Init(inMemory bool, path string) error {
 	bytes := ([]byte)(path)
 	rawPath := (*C.uchar)(unsafe.Pointer(&bytes))
 	pathLen := (C.uint32_t)(uint32(len(path)))
-	var res C.struct_svm_result_t = C.svm_init((C.bool)(inMemory), rawPath, pathLen)
-	copySvmResult(res)
+	res := C.svm_init((C.bool)(inMemory), rawPath, pathLen)
+	if _, err := copySvmResult(res); err != nil {
+		panic("Init has failed!")
+	}
 
 	return nil
 }
@@ -212,8 +214,16 @@ func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, 
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) *CallReceipt {
-	panic("TODO")
+func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, error) {
+	object, err := runAction(env, msg, ctx, func(params *svmParams) C.svm_result_t {
+		return C.svm_verify(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return object.(*CallReceipt), nil
 }
 
 // Signaling `SVM` that we are about to start playing a list of transactions under the input `layer` Layer.
@@ -272,6 +282,13 @@ func NewEvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas,
 		TxNonce:   txNonce,
 		GasLimit:  gasLimit,
 		GasFee:    gasFee,
+	}
+}
+
+func NewContext(layer Layer, txId TxId) *Context {
+	return &Context{
+		Layer: layer,
+		TxId:  txId,
 	}
 }
 
