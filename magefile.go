@@ -17,7 +17,7 @@ import (
 
 func DownloadArtifactsToDir(dir string) error {
 	if _, err := os.Stat(filepath.Join(dir, "bins-Linux-release.zip")); err == nil {
-		// Artifact files are already present, let's return early.
+		fmt.Printf("Artifact files are already present.\n")
 		return nil
 	}
 
