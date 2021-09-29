@@ -31,31 +31,46 @@ func TestValidateEmptyDeploy(t *testing.T) {
 	Init(true, "")
 
 	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
 	ok, err := rt.ValidateDeploy([]byte{})
 	assert.False(t, ok)
 	assert.NotNil(t, err)
-
-	rt.Destroy()
 }
 
 func TestValidateEmptySpawn(t *testing.T) {
 	Init(true, "")
 
 	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
 	ok, err := rt.ValidateSpawn([]byte{})
 	assert.False(t, ok)
 	assert.NotNil(t, err)
-
-	rt.Destroy()
 }
 
 func TestValidateEmptyCall(t *testing.T) {
 	Init(true, "")
 
 	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
 	ok, err := rt.ValidateCall([]byte{})
 	assert.False(t, ok)
 	assert.NotNil(t, err)
+}
 
-	rt.Destroy()
+func TestDeployOutOfGas(t *testing.T) {
+	Init(true, "")
+
+	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
+	msg := []byte{}
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{}, Gas(0), GasFee(0))
+	ctx := NewContext(Layer(0), TxId{})
+
+	receipt, err := rt.Deploy(env, msg, ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, false, receipt.Success)
 }
