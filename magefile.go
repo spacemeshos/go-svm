@@ -58,6 +58,17 @@ func Build() error {
 	return cmd.Run()
 }
 
+func environWithLibPaths(here string) []string {
+	artifacts := filepath.Join(here, "svm", "artifacts")
+	libPath := libPath(artifacts)
+
+	env := os.Environ()
+	env = append(env, fmt.Sprintf("LD_LIBRARY_PATH=%s", libPath))
+	env = append(env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s", libPath))
+
+	return env
+}
+
 func Install() error {
 	here, _ := os.Getwd()
 	dir := filepath.Join(here, "svm", "artifacts")
@@ -66,8 +77,7 @@ func Install() error {
 	mg.Deps(mg.F(DownloadArtifactsToDir, dir))
 
 	cmd := exec.Command("go", "install", "./...")
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("LD_LIBRARY_PATH=%s", libPath(dir)))
+	cmd.Env = environWithLibPaths(here)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -78,13 +88,10 @@ func Test() error {
 	mg.Deps(Install)
 
 	here, _ := os.Getwd()
-	dir := filepath.Join(here, "svm", "artifacts")
 
 	cmd := exec.Command("go", "test", "-p", "1", ".")
 	cmd.Dir = filepath.Join(here, "svm")
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("LD_LIBRARY_PATH=%s", libPath(dir)))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s", libPath(dir)))
+	cmd.Env = environWithLibPaths(here)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
