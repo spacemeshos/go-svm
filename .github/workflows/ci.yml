@@ -21,10 +21,4 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-      - name: Download SVM artifacts
-        run: |
-          set -e
-          echo '${{ secrets.GITHUB_TOKEN }}' | gh auth login --with-token
-          ./download_artifacts.sh
-      - working-directory: svm
-        run: go test .
+      - run: go run mage.go test

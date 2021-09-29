@@ -1,7 +1,7 @@
 package svm
 
 // #cgo CFLAGS: -I${SRCDIR}/artifacts/bins-Linux-release/
-// #cgo linux LDFLAGS: -L${SRCDIR}/artifacts/bins-Linux-release/ -lm -ldl -lsvm
+// #cgo linux LDFLAGS: -L${SRCDIR}/artifacts/bins-Linux-release/ -lsvm -lm -ldl
 // #cgo darwin LDFLAGS: -L${SRCDIR}/artifacts/bins-macOS-release/ -lsvm -lm -ldl -framework Security -framework Foundation
 // #cgo windows LDFLAGS: -L${SRCDIR}/artifacts/bins-Windows-release/ -lsvm -lm
 //
