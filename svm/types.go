@@ -25,6 +25,7 @@ type State [StateLength]byte
 type Gas uint64
 type GasFee uint64
 type Layer uint64
+type ReturnData []byte
 type Log []byte
 
 // `Runtime` wraps the raw-Runtime returned by SVM C-API
@@ -86,6 +87,7 @@ type SpawnReceipt struct {
 	Error           RuntimeError
 	AccountAddr     Address
 	InitState       State
+	ReturnData      []byte
 	GasUsed         Gas
 	Logs            []Log
 	TouchedAccounts []Address
