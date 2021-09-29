@@ -76,7 +76,7 @@ func Install() error {
 	mg.Deps(Build)
 	mg.Deps(mg.F(DownloadArtifactsToDir, dir))
 
-	cmd := exec.Command("go", "install", "./...")
+	cmd := exec.Command("go", "install", "-x", "./...")
 	cmd.Env = environWithLibPaths(here)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
