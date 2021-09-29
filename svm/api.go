@@ -291,7 +291,7 @@ func NewContext(layer Layer, txId TxId) *Context {
 	}
 }
 
-func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
+func toSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
 	envBytes := encodeEnvelope(env)
 	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
 
@@ -310,6 +310,9 @@ func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
 }
 
 func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
+	defer C.free(unsafe.Pointer(res.receipt))
+	defer C.free(unsafe.Pointer(res.error))
+
 	size := C.int(res.buf_size)
 
 	receipt := ([]byte)(nil)
@@ -323,9 +326,6 @@ func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
 		err = errors.New(string(C.GoBytes(ptr, size)))
 	}
 
-	C.free(unsafe.Pointer(res.receipt))
-	C.free(unsafe.Pointer(res.error))
-
 	return receipt, err
 }
 
@@ -333,7 +333,7 @@ type svmAction func(params *svmParams) C.svm_result_t
 type svmValidation func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t
 
 func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (interface{}, error) {
-	params := encodeSvmParams(env, msg, ctx)
+	params := toSvmParams(env, msg, ctx)
 	res := action(params)
 	bytes, err := copySvmResult(res)
 

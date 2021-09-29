@@ -6,8 +6,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func decodeEnvelope(bytes [EnvelopeLength]byte) *Envelope {
-	return nil
+func decodeEnvelope(bytes []byte) *Envelope {
+	principal, bytes := decodeAddress(bytes)
+	amount, bytes := decodeAmount(bytes)
+	txNonce, bytes := decodeTxNonce(bytes)
+	gasLimit, bytes := decodeGas(bytes)
+	gasFee, bytes := decodeGasFeeUsed(bytes)
+
+	return NewEnvelope(principal, amount, txNonce, gasLimit, gasFee)
+}
+
+func decodeContext(bytes [ContextLength]byte) *Context {
+	layer, bytes := decodeLayer(bytes)
+	txId, bytes := decodeTxI(bytes)
+	
 }
 
 func TestEncodeDecodeEnvelope(t *testing.T) {

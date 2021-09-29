@@ -30,7 +30,7 @@ func decodeReceipt(bytes []byte) (interface{}, error) {
 
 func decodeDeployReceipt(bytes []byte) (*DeployReceipt, error) {
 	templateAddr, bytes := decodeAddress(bytes)
-	gas, bytes := decodeGasUsed(bytes)
+	gas, bytes := decodeGas(bytes)
 	logs, _ := decodeLogs(bytes)
 
 	receipt := &DeployReceipt{
@@ -45,7 +45,7 @@ func decodeDeployReceipt(bytes []byte) (*DeployReceipt, error) {
 func decodeSpawnReceipt(bytes []byte) (*SpawnReceipt, error) {
 	accountAddr, bytes := decodeAddress(bytes)
 	initState, bytes := decodeState(bytes)
-	gas, bytes := decodeGasUsed(bytes)
+	gas, bytes := decodeGas(bytes)
 	returndata, bytes := decodeReturnData(bytes)
 	logs, _ := decodeLogs(bytes)
 
@@ -62,7 +62,7 @@ func decodeSpawnReceipt(bytes []byte) (*SpawnReceipt, error) {
 
 func decodeCallReceipt(bytes []byte) (*CallReceipt, error) {
 	newState, bytes := decodeState(bytes)
-	gas, bytes := decodeGasUsed(bytes)
+	gas, bytes := decodeGas(bytes)
 	returndata, bytes := decodeReturnData(bytes)
 	logs, _ := decodeLogs(bytes)
 
@@ -94,25 +94,6 @@ func decodeReceiptHeader(bytes []byte) (TxType, bool, []byte) {
 	}
 
 	return txType, success, bytes[ReceiptHeaderLength:]
-}
-
-func decodeState(bytes []byte) ([StateLength]byte, []byte) {
-	var state [StateLength]byte
-	copy(state[:], bytes[:StateLength])
-
-	return state, bytes[StateLength:]
-}
-
-func decodeAddress(bytes []byte) ([AddressLength]byte, []byte) {
-	var addr [AddressLength]byte
-	copy(addr[:], bytes[:AddressLength])
-
-	return addr, bytes[AddressLength:]
-}
-
-func decodeGasUsed(bytes []byte) (Gas, []byte) {
-	gas := binary.BigEndian.Uint64(bytes)
-	return Gas(gas), bytes[8:]
 }
 
 func decodeReturnData(bytes []byte) (ReturnData, []byte) {

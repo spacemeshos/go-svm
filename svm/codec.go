@@ -65,3 +65,51 @@ func encodeContext(ctx *Context) [ContextLength]byte {
 
 	return bytes
 }
+
+func decodeAddress(bytes []byte) ([AddressLength]byte, []byte) {
+	var addr [AddressLength]byte
+	copy(addr[:], bytes[:AddressLength])
+
+	return addr, bytes[AddressLength:]
+}
+
+func decodeState(bytes []byte) ([StateLength]byte, []byte) {
+	var state [StateLength]byte
+	copy(state[:], bytes[:StateLength])
+
+	return state, bytes[StateLength:]
+}
+
+func decodeTxId(bytes []byte) ([TxIdLength]byte, []byte) {
+	var txId [TxIdLength]byte
+	copy(txId[:], bytes[:TxIdLength])
+
+	return txId, bytes[TxIdLength:]
+}
+
+func decodeGas(bytes []byte) (Gas, []byte) {
+	gas := binary.BigEndian.Uint64(bytes)
+	return Gas(gas), bytes[GasLength:]
+}
+
+func decodeGasFeeUsed(bytes []byte) (GasFee, []byte) {
+	gas := binary.BigEndian.Uint64(bytes)
+	return GasFee(gas), bytes[GasFeeLength:]
+}
+
+func decodeAmount(bytes []byte) (Amount, []byte) {
+	amount := binary.BigEndian.Uint64(bytes)
+	return Amount(amount), bytes[AmountLength:]
+}
+
+func decodeLayer(bytes []byte) (Layer, []byte) {
+	layer := binary.BigEndian.Uint64(bytes)
+	return Layer(layer), bytes[LayerLength:]
+}
+
+func decodeTxNonce(bytes []byte) (TxNonce, []byte) {
+	upper := binary.BigEndian.Uint64(bytes)
+	lower := binary.BigEndian.Uint64(bytes)
+
+	return TxNonce{Upper: upper, Lower: lower}, bytes[16:]
+}
