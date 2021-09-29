@@ -52,6 +52,7 @@ func DownloadArtifactsToDir(dir string) error {
 
 func Build() error {
 	cmd := exec.Command("go", "mod", "download")
+	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -65,6 +66,7 @@ func Install() error {
 	mg.Deps(mg.F(DownloadArtifactsToDir, dir))
 
 	cmd := exec.Command("go", "install", "./...")
+	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("LD_LIBRARY_PATH=%s", libPath(dir)))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -80,6 +82,7 @@ func Test() error {
 
 	cmd := exec.Command("go", "test", "-p", "1", ".")
 	cmd.Dir = filepath.Join(here, "svm")
+	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("LD_LIBRARY_PATH=%s", libPath(dir)))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s", libPath(dir)))
 	cmd.Stdout = os.Stdout
