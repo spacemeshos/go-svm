@@ -21,23 +21,25 @@ func encodeEnvelope(env *Envelope) [EnvelopeLength]byte {
 
 	// `Principal`
 	copy(bytes[:AddressLength], env.Principal[:])
+	off := AddressLength
 
 	// `Amount`
-	p := AddressLength
-	binary.BigEndian.PutUint64(bytes[p:p+AmountLength], (uint64)(env.Amount))
+	binary.BigEndian.PutUint64(bytes[off:off+AmountLength], (uint64)(env.Amount))
+	off += AmountLength
 
 	// `Tx Nonce`
-	p += TxNonceLength
-	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], (uint64)(env.TxNonce.Upper))
-	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], (uint64)(env.TxNonce.Lower))
+	binary.BigEndian.PutUint64(bytes[off:off+TxNonceLength/2], (uint64)(env.TxNonce.Upper))
+	off += TxNonceLength/2
+	binary.BigEndian.PutUint64(bytes[off:off+TxNonceLength/2], (uint64)(env.TxNonce.Lower))
+	off += TxNonceLength/2
 
 	// `Gas Limit`
-	p += GasLength
-	binary.BigEndian.PutUint64(bytes[p:p+GasLength], (uint64)(env.GasLimit))
+	binary.BigEndian.PutUint64(bytes[off:off+GasLength], (uint64)(env.GasLimit))
+	off += GasLength
 
 	// `Gas Fee`
-	p += GasFeeLength
-	binary.BigEndian.PutUint64(bytes[p:p+GasFeeLength], (uint64)(env.GasFee))
+	binary.BigEndian.PutUint64(bytes[off:off+GasFeeLength], (uint64)(env.GasFee))
+	off += GasFeeLength
 
 	return bytes
 }
@@ -80,11 +82,11 @@ func decodeState(bytes []byte) ([StateLength]byte, []byte) {
 	return state, bytes[StateLength:]
 }
 
-func decodeTxId(bytes []byte) ([TxIdLength]byte, []byte) {
+func decodeTxId(bytes []byte) (TxId, []byte) {
 	var txId [TxIdLength]byte
 	copy(txId[:], bytes[:TxIdLength])
 
-	return txId, bytes[TxIdLength:]
+	return TxId(txId), bytes[TxIdLength:]
 }
 
 func decodeGas(bytes []byte) (Gas, []byte) {
@@ -109,7 +111,7 @@ func decodeLayer(bytes []byte) (Layer, []byte) {
 
 func decodeTxNonce(bytes []byte) (TxNonce, []byte) {
 	upper := binary.BigEndian.Uint64(bytes)
-	lower := binary.BigEndian.Uint64(bytes)
+	lower := binary.BigEndian.Uint64(bytes[8:])
 
 	return TxNonce{Upper: upper, Lower: lower}, bytes[16:]
 }
