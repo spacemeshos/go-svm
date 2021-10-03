@@ -32,5 +32,4 @@ type RuntimeError struct {
 	Function string
 	Template TemplateAddr
 	Message  string
-	Logs 	 []Log
 }

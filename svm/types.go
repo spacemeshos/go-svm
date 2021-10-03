@@ -75,7 +75,7 @@ type Account struct {
 // Holds the data returned after executing a `Deploy` transaction.
 type DeployReceipt struct {
 	Success      bool
-	Error        RuntimeError
+	Error        *RuntimeError
 	TemplateAddr TemplateAddr
 	GasUsed      Gas
 	Logs         []Log
@@ -84,7 +84,7 @@ type DeployReceipt struct {
 // Holds the data returned after executing a `Spawn` transaction.
 type SpawnReceipt struct {
 	Success         bool
-	Error           RuntimeError
+	Error           *RuntimeError
 	AccountAddr     Address
 	InitState       State
 	ReturnData      []byte
@@ -96,7 +96,7 @@ type SpawnReceipt struct {
 // Holds the data returned after executing a `Call` transaction.
 type CallReceipt struct {
 	Success         bool
-	Error           RuntimeError
+	Error           *RuntimeError
 	NewState        State
 	ReturnData      []byte
 	GasUsed         Gas

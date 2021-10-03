@@ -10,13 +10,37 @@ import (
 const ReceiptHeaderLength = 1 + 2 + 1
 
 func decodeReceipt(bytes []byte) (interface{}, error) {
-	receiptType, success, bytes := decodeReceiptHeader(bytes)
+	txType, success, bytes := decodeReceiptHeader(bytes)
 
-	if !success {
-		return decodeRuntimeError(bytes)
+	if success {
+		return decodeSuccess(txType, bytes)
+	}
+	return decodeFailure(txType, bytes)
+}
+
+func decodeFailure(txType TxType, bytes []byte) (interface{}, error) {
+	rtError, logs, err := decodeRuntimeError(bytes)
+	if err != nil {
+		return nil, err
 	}
 
-	switch receiptType {
+	switch txType {
+	case TxType(DeployType):
+		receipt := &DeployReceipt{Success: false, Error: rtError, Logs: logs}
+		return receipt, nil
+	case TxType(SpawnType):
+		receipt := &SpawnReceipt{Success: false, Error: rtError, Logs: logs}
+		return receipt, nil
+	case TxType(CallType):
+		receipt := &CallReceipt{Success: false, Error: rtError, Logs: logs}
+		return receipt, nil
+	default:
+		panic("Unreachable")
+	}
+}
+
+func decodeSuccess(txType TxType, bytes []byte) (interface{}, error) {
+	switch txType {
 	case TxType(DeployType):
 		return decodeDeployReceipt(bytes)
 	case TxType(SpawnType):
@@ -28,22 +52,22 @@ func decodeReceipt(bytes []byte) (interface{}, error) {
 	}
 }
 
-func decodeRuntimeError(bytes []byte) (*RuntimeError, error) {
+func decodeRuntimeError(bytes []byte) (*RuntimeError, []Log, error) {
 	errorCode, bytes := decodeErrorCode(bytes)
 	logs, bytes := decodeLogs(bytes)
-	rtError := &RuntimeError{Kind: errorCode, Logs: logs}
+	rtError := &RuntimeError{Kind: errorCode}
 
 	switch errorCode {
 	case RuntimeErrorKind(OOG):
-		return rtError, nil
+		return rtError, logs, nil
 	case RuntimeErrorKind(TemplateNotFound):
 		template, _ := decodeAddress(bytes)
 		rtError.Template = template
-		return rtError, nil
+		return rtError, logs, nil
 	case RuntimeErrorKind(AccountNotFound):
 		target, _ := decodeAddress(bytes)
 		rtError.Target = target
-		return rtError, nil
+		return rtError, logs, nil
 	case RuntimeErrorKind(CompilationFailed), RuntimeErrorKind(InstantiationFailed):
 		template, bytes := decodeAddress(bytes)
 		target, bytes := decodeAddress(bytes)
@@ -51,7 +75,7 @@ func decodeRuntimeError(bytes []byte) (*RuntimeError, error) {
 		rtError.Template = template
 		rtError.Target = target
 		rtError.Message = msg
-		return rtError, nil
+		return rtError, logs, nil
 	case RuntimeErrorKind(FuncNotFound):
 		template, bytes := decodeAddress(bytes)
 		target, bytes := decodeAddress(bytes)
@@ -59,7 +83,7 @@ func decodeRuntimeError(bytes []byte) (*RuntimeError, error) {
 		rtError.Template = template
 		rtError.Target = target
 		rtError.Function = function
-		return rtError, nil
+		return rtError, logs, nil
 	case RuntimeErrorKind(FuncFailed), RuntimeErrorKind(FuncNotAllowed):
 		template, bytes := decodeAddress(bytes)
 		target, bytes := decodeAddress(bytes)
@@ -69,7 +93,7 @@ func decodeRuntimeError(bytes []byte) (*RuntimeError, error) {
 		rtError.Target = target
 		rtError.Function = function
 		rtError.Message = msg
-		return rtError, nil
+		return rtError, logs, nil
 	case RuntimeErrorKind(FuncInvalidSignature):
 		template, bytes := decodeAddress(bytes)
 		target, bytes := decodeAddress(bytes)
@@ -77,7 +101,7 @@ func decodeRuntimeError(bytes []byte) (*RuntimeError, error) {
 		rtError.Template = template
 		rtError.Target = target
 		rtError.Function = function
-		return rtError, nil
+		return rtError, logs, nil
 	default:
 		panic("Unreachable")
 	}
@@ -132,8 +156,7 @@ func decodeCallReceipt(bytes []byte) (*CallReceipt, error) {
 }
 
 func decodeErrorCode(bytes []byte) (RuntimeErrorKind, []byte) {
-	errorCode := int(binary.BigEndian.Uint16(bytes[0:]))
-	return RuntimeErrorKind(errorCode), bytes[2:]	
+	return RuntimeErrorKind(bytes[0]), bytes[1:]	
 }
 
 func decodeReceiptHeader(bytes []byte) (TxType, bool, []byte) {
