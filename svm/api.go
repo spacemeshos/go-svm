@@ -354,7 +354,6 @@ func runValidation(msg []byte, validator svmValidation) (bool, error) {
 	if err == nil {
 		return true, nil
 	} else {
-		// TODO: return an `error`
-		return false, nil
+		return false, err
 	}
 }

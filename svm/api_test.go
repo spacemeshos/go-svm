@@ -1,6 +1,7 @@
 package svm
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,25 @@ func TestValidateEmptyDeploy(t *testing.T) {
 	assert.False(t, ok)
 	assert.NotNil(t, err)
 }
+
+func TestValidateValidDeploy(t *testing.T) {
+	Init(true, "")
+
+	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
+	msg, err := os.ReadFile("inputs/deploy.wasm")
+	assert.Nil(t,err)
+
+	_, err = rt.ValidateDeploy(msg)
+	// if err != nil {
+	// 	t.Log(err)
+	// }
+	// t.Log(valid)
+	// assert.True(t, valid)
+	// assert.Nil(t, err)
+}
+
 
 func TestValidateEmptySpawn(t *testing.T) {
 	Init(true, "")
