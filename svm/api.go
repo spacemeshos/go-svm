@@ -11,6 +11,7 @@ package svm
 import "C"
 import (
 	"errors"
+	"log"
 	"unsafe"
 )
 
@@ -126,6 +127,7 @@ func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) (*DeployRecei
 	})
 
 	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
 
@@ -293,13 +295,13 @@ func NewContext(layer Layer, txId TxId) *Context {
 
 func toSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
 	envBytes := encodeEnvelope(env)
-	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
+	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes[0]))
 
-	msgPtr := (*C.uchar)(unsafe.Pointer(&msg))
+	msgPtr := (*C.uchar)(unsafe.Pointer(&msg[0]))
 	msgLen := (C.uint32_t)(uint32(len(msg)))
 
 	ctxBytes := encodeContext(ctx)
-	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes))
+	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes[0]))
 
 	return &svmParams{
 		envPtr,

@@ -1,7 +1,7 @@
 package svm
 
 type ValidateErrorKind byte
-type RuntimeErrorKind byte
+type RuntimeErrorKind int
 
 const (
 	ParseError    ValidateErrorKind = 0
@@ -32,4 +32,5 @@ type RuntimeError struct {
 	Function string
 	Template TemplateAddr
 	Message  string
+	Logs 	 []Log
 }

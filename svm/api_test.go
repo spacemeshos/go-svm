@@ -3,6 +3,7 @@ package svm
 import (
 	"os"
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,13 +87,12 @@ func TestDeployOutOfGas(t *testing.T) {
 	defer rt.Destroy()
 
 	msg := ReadTemplate(t, "inputs/deploy.svm")
-	env := NewEnvelope(Address{}, Amount(10), TxNonce{}, Gas(0), GasFee(0))
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(1000000), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
 
-	_, err := rt.Deploy(env, msg, ctx)
-	if err != nil {
-		t.Log(err)
-	}
-	// assert.Nil(t, err)
+	receipt, err := rt.Deploy(env, msg, ctx)
+	assert.Nil(t, err)
+
+	t.Log(receipt)
 	// assert.Equal(t, false, receipt.Success)
 }
