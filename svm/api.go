@@ -345,7 +345,7 @@ func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (inter
 }
 
 func runValidation(msg []byte, validator svmValidation) (bool, error) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
 	msgLen := (C.uint32_t)(len(msg))
 
 	res := validator(rawMsg, msgLen)
