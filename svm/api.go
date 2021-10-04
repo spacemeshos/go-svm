@@ -333,6 +333,10 @@ type svmAction func(params *svmParams) C.svm_result_t
 type svmValidation func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t
 
 func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (interface{}, error) {
+	if len(msg) == 0 {
+		return false, errors.New("`msg` cannot be empty")
+	}
+
 	params := toSvmParams(env, msg, ctx)
 	res := action(params)
 	bytes, err := copySvmResult(res)
@@ -345,6 +349,10 @@ func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (inter
 }
 
 func runValidation(msg []byte, validator svmValidation) (bool, error) {
+	if len(msg) == 0 {
+		return false, errors.New("`msg` cannot be empty")
+	}
+
 	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
 	msgLen := (C.uint32_t)(len(msg))
 
