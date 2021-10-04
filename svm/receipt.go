@@ -1,8 +1,8 @@
 package svm
 
 import (
-	"log"
 	"encoding/binary"
+	"log"
 )
 
 // * One byte for `tx type`
@@ -161,7 +161,7 @@ func decodeCallReceipt(bytes []byte) (*CallReceipt, error) {
 }
 
 func decodeErrorCode(bytes []byte) (RuntimeErrorKind, []byte) {
-	return RuntimeErrorKind(bytes[0]), bytes[1:]	
+	return RuntimeErrorKind(bytes[0]), bytes[1:]
 }
 
 func decodeReceiptHeader(bytes []byte) (TxType, bool, []byte) {

@@ -21,8 +21,8 @@ func decodeContext(bytes []byte) (*Context, []byte) {
 	layer, bytes := decodeLayer(bytes)
 	txId, bytes := decodeTxId(bytes)
 	ctx := NewContext(layer, txId)
-	
-	return ctx, bytes 
+
+	return ctx, bytes
 }
 
 func TestEncodeDecodeEnvelope(t *testing.T) {

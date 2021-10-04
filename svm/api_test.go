@@ -1,11 +1,17 @@
 package svm
 
 import (
-	"os"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func ReadTemplate(t *testing.T, path string) []byte {
+	bytes, err := ioutil.ReadFile(path)
+	assert.Nil(t, err)
+	return bytes
+}
 
 func TestInitMemoryNilErr(t *testing.T) {
 	assert.Equal(t, 0, RuntimesCount())
@@ -39,12 +45,6 @@ func TestValidateEmptyDeploy(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func ReadTemplate(t *testing.T, path string) []byte {
-	bytes, err := os.ReadFile(path)
-	assert.Nil(t, err)
-	return bytes
-}
-
 func TestValidateValidDeploy(t *testing.T) {
 	Init(true, "")
 
@@ -56,7 +56,6 @@ func TestValidateValidDeploy(t *testing.T) {
 	assert.True(t, valid)
 	assert.Nil(t, err)
 }
-
 
 func TestValidateEmptySpawn(t *testing.T) {
 	Init(true, "")

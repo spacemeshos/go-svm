@@ -29,9 +29,9 @@ func encodeEnvelope(env *Envelope) [EnvelopeLength]byte {
 
 	// `Tx Nonce`
 	binary.BigEndian.PutUint64(bytes[off:off+TxNonceLength/2], (uint64)(env.TxNonce.Upper))
-	off += TxNonceLength/2
+	off += TxNonceLength / 2
 	binary.BigEndian.PutUint64(bytes[off:off+TxNonceLength/2], (uint64)(env.TxNonce.Lower))
-	off += TxNonceLength/2
+	off += TxNonceLength / 2
 
 	// `Gas Limit`
 	binary.BigEndian.PutUint64(bytes[off:off+GasLength], (uint64)(env.GasLimit))
