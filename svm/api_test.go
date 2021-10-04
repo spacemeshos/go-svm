@@ -87,12 +87,28 @@ func TestDeployOutOfGas(t *testing.T) {
 	defer rt.Destroy()
 
 	msg := ReadTemplate(t, "inputs/deploy.svm")
-	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(1000000), GasFee(0))
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
 
 	receipt, err := rt.Deploy(env, msg, ctx)
 	assert.Nil(t, err)
 
-	t.Log(receipt)
-	// assert.Equal(t, false, receipt.Success)
+	assert.Equal(t, false, receipt.Success)
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(OOG))
+}
+
+func TestDeploySuccess(t *testing.T) {
+	Init(true, "")
+
+	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
+	msg := ReadTemplate(t, "inputs/deploy.svm")
+	gas := 1000000000
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
+	ctx := NewContext(Layer(0), TxId{})
+
+	receipt, err := rt.Deploy(env, msg, ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, true, receipt.Success)
 }

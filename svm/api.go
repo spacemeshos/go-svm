@@ -11,7 +11,6 @@ package svm
 import "C"
 import (
 	"errors"
-	"log"
 	"unsafe"
 )
 
@@ -127,7 +126,6 @@ func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) (*DeployRecei
 	})
 
 	if err != nil {
-		log.Print(err)
 		return nil, err
 	}
 

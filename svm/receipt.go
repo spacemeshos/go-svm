@@ -1,6 +1,7 @@
 package svm
 
 import (
+	"log"
 	"encoding/binary"
 )
 
@@ -59,16 +60,20 @@ func decodeRuntimeError(bytes []byte) (*RuntimeError, []Log, error) {
 
 	switch errorCode {
 	case RuntimeErrorKind(OOG):
+		log.Print("OOG")
 		return rtError, logs, nil
 	case RuntimeErrorKind(TemplateNotFound):
+		log.Print("Template Not Found")
 		template, _ := decodeAddress(bytes)
 		rtError.Template = template
 		return rtError, logs, nil
 	case RuntimeErrorKind(AccountNotFound):
+		log.Print("Account Not Found")
 		target, _ := decodeAddress(bytes)
 		rtError.Target = target
 		return rtError, logs, nil
 	case RuntimeErrorKind(CompilationFailed), RuntimeErrorKind(InstantiationFailed):
+		log.Print("...")
 		template, bytes := decodeAddress(bytes)
 		target, bytes := decodeAddress(bytes)
 		msg, _ := decodeString(bytes)
