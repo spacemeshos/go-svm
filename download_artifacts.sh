@@ -24,5 +24,6 @@ else
 fi
 
 chmod a+x svm-cli
+cp svm.h ..
 
 exit 0
