@@ -1,7 +1,6 @@
 package svm
 
 import (
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -97,39 +96,18 @@ func TestDeployOutOfGas(t *testing.T) {
 	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(OOG))
 }
 
-func DeployWithInfiniteGas(t *testing.T, path string) (*Runtime, *DeployReceipt) {
+func TestDeploySuccess(t *testing.T) {
 	Init(true, "")
 
 	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
-	msg := ReadTemplate(t, path)
+	msg := ReadTemplate(t, "inputs/deploy.svm")
 	gas := 1000000000
 	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
 
 	receipt, err := rt.Deploy(env, msg, ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, true, receipt.Success)
-	
-	return rt, receipt
-}
-
-func TestDeploySuccess(t *testing.T) {
-	rt, _ := DeployWithInfiniteGas(t, "inputs/deploy.svm")
-	rt.Destroy()
-}
-
-func TestSpawnSuccess(t *testing.T) {
-	rt, _ := DeployWithInfiniteGas(t, "inputs/deploy.svm")
-	defer rt.Destroy()
-
-	gas := 1000000000
-	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
-	ctx := NewContext(Layer(0), TxId{})
-
-	msg := []byte{0}
-	receipt, err := rt.Spawn(env, msg, ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
 }
