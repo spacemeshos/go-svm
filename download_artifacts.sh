@@ -14,11 +14,15 @@ LAST_SVM_WORKFLOW_RUN_ID=`gh run list --repo spacemeshos/svm --limit 1 | head -1
 echo "Done. Now downloading the artifacts. This might take up to a few minutes..."
 
 cd svm/artifacts/
-gh run download $LAST_SVM_WORKFLOW_RUN_ID --repo spacemeshos/svm
 
-cp bins-Linux-release/svm.h ..
-cp bins-Linux-release/libsvm.so .
-cp bins-macOS-release/libsvm.dylib .
-cp bins-Windows-release/svm.dll .
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    gh run download $LAST_SVM_WORKFLOW_RUN_ID --name bins-Linux-release --repo spacemeshos/svm
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    gh run download $LAST_SVM_WORKFLOW_RUN_ID --name bins-macOS-release --repo spacemeshos/svm
+else
+    gh run download $LAST_SVM_WORKFLOW_RUN_ID --name bins-Windows-release --repo spacemeshos/svm
+fi
+
+chmod a+x svm-cli
 
 exit 0
