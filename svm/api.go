@@ -10,7 +10,6 @@ package svm
 */
 import "C"
 import (
-	"encoding/binary"
 	"errors"
 	"unsafe"
 )
@@ -275,7 +274,7 @@ func (rt *Runtime) IncreaseBalance(addr Address, amount Amount) {
 	panic("TODO")
 }
 
-func NewEvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) *Envelope {
+func NewEnvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) *Envelope {
 	return &Envelope{
 		Principal: principal,
 		Amount:    amount,
@@ -292,80 +291,15 @@ func NewContext(layer Layer, txId TxId) *Context {
 	}
 }
 
-//
-// In other words, holds fields which are part of any transaction regardless of its type (i.e `Deploy/Spawn/Call`).
-/// Encoding of a binary [`Envelope`].
-///
-/// ```text
-///  +-------------+--------------+----------------+----------------+----------------+
-///  |             |              |			       |                |				 |
-///  |  Principal  |    Amount    |    Tx Nonce    |   Gas Limit    |    Gas Fee 	 |
-///  |  (Address)  |    (u64)     |     (u128)     |     (u64)      |     (u64)	 	 |
-///  |             |              |                |                |				 |
-///  |  20 bytes   |   8 bytes    |    16 bytes    |    8 bytes     |    8 bytes     |
-///  |             | (Big-Endian) |  (Big-Endian)  |  (Big-Endian)  |  (Big-Endian)  |
-///  |             |              |                |                |			     |
-///  +-------------+--------------+----------------+----------------+----------------+
-/// ```
-func encodeEnvelope(env *Envelope) [EnvelopeLength]byte {
-	bytes := [EnvelopeLength]byte{0}
-
-	// `Principal`
-	copy(bytes[:AddressLength], env.Principal[:])
-
-	// `Amount`
-	p := AddressLength
-	binary.BigEndian.PutUint64(bytes[p:p+AmountLength], (uint64)(env.Amount))
-
-	// `Tx Nonce`
-	p += TxNonceLength
-	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], (uint64)(env.TxNonce.Upper))
-	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], (uint64)(env.TxNonce.Lower))
-
-	// `Gas Limit`
-	p += GasLength
-	binary.BigEndian.PutUint64(bytes[p:p+GasLength], (uint64)(env.GasLimit))
-
-	// `Gas Fee`
-	p += GasFeeLength
-	binary.BigEndian.PutUint64(bytes[p:p+GasFeeLength], (uint64)(env.GasFee))
-
-	return bytes
-}
-
-/// ```text
-///  +-------------+--------------+
-///  |             |              |
-///  |    Layer    |    Tx Id     |
-///  |   (u64)     |    (Blob)    |
-///  |             |              |
-///  |  8 bytes    |   32 bytes   |
-///  |             | 			  |
-///  +-------------+--------------+
-/// ```
-func encodeContext(ctx *Context) [ContextLength]byte {
-	bytes := [ContextLength]byte{0}
-
-	// `Layer`
-	p := 0
-	binary.BigEndian.PutUint64(bytes[:LayerLength], (uint64)(ctx.Layer))
-
-	// `Tx Id`
-	p += LayerLength
-	copy(bytes[p:p+TxIdLength], ctx.TxId[:])
-
-	return bytes
-}
-
-func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
+func toSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
 	envBytes := encodeEnvelope(env)
-	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
+	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes[0]))
 
-	msgPtr := (*C.uchar)(unsafe.Pointer(&msg))
+	msgPtr := (*C.uchar)(unsafe.Pointer(&msg[0]))
 	msgLen := (C.uint32_t)(uint32(len(msg)))
 
 	ctxBytes := encodeContext(ctx)
-	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes))
+	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes[0]))
 
 	return &svmParams{
 		envPtr,
@@ -376,6 +310,9 @@ func encodeSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
 }
 
 func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
+	defer C.free(unsafe.Pointer(res.receipt))
+	defer C.free(unsafe.Pointer(res.error))
+
 	size := C.int(res.buf_size)
 
 	receipt := ([]byte)(nil)
@@ -389,9 +326,6 @@ func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
 		err = errors.New(string(C.GoBytes(ptr, size)))
 	}
 
-	C.free(unsafe.Pointer(res.receipt))
-	C.free(unsafe.Pointer(res.error))
-
 	return receipt, err
 }
 
@@ -399,7 +333,11 @@ type svmAction func(params *svmParams) C.svm_result_t
 type svmValidation func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t
 
 func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (interface{}, error) {
-	params := encodeSvmParams(env, msg, ctx)
+	if len(msg) == 0 {
+		return false, errors.New("`msg` cannot be empty")
+	}
+
+	params := toSvmParams(env, msg, ctx)
 	res := action(params)
 	bytes, err := copySvmResult(res)
 
@@ -411,16 +349,15 @@ func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (inter
 }
 
 func runValidation(msg []byte, validator svmValidation) (bool, error) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
+	if len(msg) == 0 {
+		return false, errors.New("`msg` cannot be empty")
+	}
+
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
 	msgLen := (C.uint32_t)(len(msg))
 
 	res := validator(rawMsg, msgLen)
 	_, err := copySvmResult(res)
 
-	if err == nil {
-		return true, nil
-	} else {
-		// TODO: return an `error`
-		return false, nil
-	}
+	return err == nil, err
 }

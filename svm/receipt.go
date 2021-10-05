@@ -2,6 +2,7 @@ package svm
 
 import (
 	"encoding/binary"
+	"log"
 )
 
 // * One byte for `tx type`
@@ -10,13 +11,37 @@ import (
 const ReceiptHeaderLength = 1 + 2 + 1
 
 func decodeReceipt(bytes []byte) (interface{}, error) {
-	receiptType, success, bytes := decodeReceiptHeader(bytes)
+	txType, success, bytes := decodeReceiptHeader(bytes)
 
-	if !success {
-		panic("TODO: parse error")
+	if success {
+		return decodeSuccess(txType, bytes)
+	}
+	return decodeFailure(txType, bytes)
+}
+
+func decodeFailure(txType TxType, bytes []byte) (interface{}, error) {
+	rtError, logs, err := decodeRuntimeError(bytes)
+	if err != nil {
+		return nil, err
 	}
 
-	switch receiptType {
+	switch txType {
+	case TxType(DeployType):
+		receipt := &DeployReceipt{Success: false, Error: rtError, Logs: logs}
+		return receipt, nil
+	case TxType(SpawnType):
+		receipt := &SpawnReceipt{Success: false, Error: rtError, Logs: logs}
+		return receipt, nil
+	case TxType(CallType):
+		receipt := &CallReceipt{Success: false, Error: rtError, Logs: logs}
+		return receipt, nil
+	default:
+		panic("Unreachable")
+	}
+}
+
+func decodeSuccess(txType TxType, bytes []byte) (interface{}, error) {
+	switch txType {
 	case TxType(DeployType):
 		return decodeDeployReceipt(bytes)
 	case TxType(SpawnType):
@@ -28,9 +53,68 @@ func decodeReceipt(bytes []byte) (interface{}, error) {
 	}
 }
 
+func decodeRuntimeError(bytes []byte) (*RuntimeError, []Log, error) {
+	errorCode, bytes := decodeErrorCode(bytes)
+	logs, bytes := decodeLogs(bytes)
+	rtError := &RuntimeError{Kind: errorCode}
+
+	switch errorCode {
+	case RuntimeErrorKind(OOG):
+		log.Print("OOG")
+		return rtError, logs, nil
+	case RuntimeErrorKind(TemplateNotFound):
+		log.Print("Template Not Found")
+		template, _ := decodeAddress(bytes)
+		rtError.Template = template
+		return rtError, logs, nil
+	case RuntimeErrorKind(AccountNotFound):
+		log.Print("Account Not Found")
+		target, _ := decodeAddress(bytes)
+		rtError.Target = target
+		return rtError, logs, nil
+	case RuntimeErrorKind(CompilationFailed), RuntimeErrorKind(InstantiationFailed):
+		log.Print("...")
+		template, bytes := decodeAddress(bytes)
+		target, bytes := decodeAddress(bytes)
+		msg, _ := decodeString(bytes)
+		rtError.Template = template
+		rtError.Target = target
+		rtError.Message = msg
+		return rtError, logs, nil
+	case RuntimeErrorKind(FuncNotFound):
+		template, bytes := decodeAddress(bytes)
+		target, bytes := decodeAddress(bytes)
+		function, _ := decodeString(bytes)
+		rtError.Template = template
+		rtError.Target = target
+		rtError.Function = function
+		return rtError, logs, nil
+	case RuntimeErrorKind(FuncFailed), RuntimeErrorKind(FuncNotAllowed):
+		template, bytes := decodeAddress(bytes)
+		target, bytes := decodeAddress(bytes)
+		function, bytes := decodeString(bytes)
+		msg, _ := decodeString(bytes)
+		rtError.Template = template
+		rtError.Target = target
+		rtError.Function = function
+		rtError.Message = msg
+		return rtError, logs, nil
+	case RuntimeErrorKind(FuncInvalidSignature):
+		template, bytes := decodeAddress(bytes)
+		target, bytes := decodeAddress(bytes)
+		function, _ := decodeString(bytes)
+		rtError.Template = template
+		rtError.Target = target
+		rtError.Function = function
+		return rtError, logs, nil
+	default:
+		panic("Unreachable")
+	}
+}
+
 func decodeDeployReceipt(bytes []byte) (*DeployReceipt, error) {
 	templateAddr, bytes := decodeAddress(bytes)
-	gas, bytes := decodeGasUsed(bytes)
+	gas, bytes := decodeGas(bytes)
 	logs, _ := decodeLogs(bytes)
 
 	receipt := &DeployReceipt{
@@ -45,7 +129,7 @@ func decodeDeployReceipt(bytes []byte) (*DeployReceipt, error) {
 func decodeSpawnReceipt(bytes []byte) (*SpawnReceipt, error) {
 	accountAddr, bytes := decodeAddress(bytes)
 	initState, bytes := decodeState(bytes)
-	gas, bytes := decodeGasUsed(bytes)
+	gas, bytes := decodeGas(bytes)
 	returndata, bytes := decodeReturnData(bytes)
 	logs, _ := decodeLogs(bytes)
 
@@ -62,7 +146,7 @@ func decodeSpawnReceipt(bytes []byte) (*SpawnReceipt, error) {
 
 func decodeCallReceipt(bytes []byte) (*CallReceipt, error) {
 	newState, bytes := decodeState(bytes)
-	gas, bytes := decodeGasUsed(bytes)
+	gas, bytes := decodeGas(bytes)
 	returndata, bytes := decodeReturnData(bytes)
 	logs, _ := decodeLogs(bytes)
 
@@ -76,8 +160,8 @@ func decodeCallReceipt(bytes []byte) (*CallReceipt, error) {
 	return receipt, nil
 }
 
-func decodeError(bytes []byte) error {
-	panic("TODO")
+func decodeErrorCode(bytes []byte) (RuntimeErrorKind, []byte) {
+	return RuntimeErrorKind(bytes[0]), bytes[1:]
 }
 
 func decodeReceiptHeader(bytes []byte) (TxType, bool, []byte) {
@@ -94,25 +178,6 @@ func decodeReceiptHeader(bytes []byte) (TxType, bool, []byte) {
 	}
 
 	return txType, success, bytes[ReceiptHeaderLength:]
-}
-
-func decodeState(bytes []byte) ([StateLength]byte, []byte) {
-	var state [StateLength]byte
-	copy(state[:], bytes[:StateLength])
-
-	return state, bytes[StateLength:]
-}
-
-func decodeAddress(bytes []byte) ([AddressLength]byte, []byte) {
-	var addr [AddressLength]byte
-	copy(addr[:], bytes[:AddressLength])
-
-	return addr, bytes[AddressLength:]
-}
-
-func decodeGasUsed(bytes []byte) (Gas, []byte) {
-	gas := binary.BigEndian.Uint64(bytes)
-	return Gas(gas), bytes[8:]
 }
 
 func decodeReturnData(bytes []byte) (ReturnData, []byte) {
@@ -143,4 +208,13 @@ func decodeLogs(bytes []byte) ([]Log, []byte) {
 	}
 
 	return logs, bytes[offset:]
+}
+
+func decodeString(bytes []byte) (string, []byte) {
+	length := bytes[0]
+	data := make([]byte, length)
+	nextOffset := 1 + length
+	copy(data, bytes[1:nextOffset])
+
+	return string(data), bytes[nextOffset:]
 }
