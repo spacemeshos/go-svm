@@ -359,9 +359,5 @@ func runValidation(msg []byte, validator svmValidation) (bool, error) {
 	res := validator(rawMsg, msgLen)
 	_, err := copySvmResult(res)
 
-	if err == nil {
-		return true, nil
-	} else {
-		return false, err
-	}
+	return err == nil, err
 }
