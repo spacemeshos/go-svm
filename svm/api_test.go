@@ -7,19 +7,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func ReadFile(t *testing.T, path string) []byte {
+func readFile(t *testing.T, path string) []byte {
 	bytes, err := ioutil.ReadFile(path)
 	assert.Nil(t, err)
 	return bytes
 }
 
-func Deploy(t *testing.T, path string) (*Runtime, *DeployReceipt, error) {
+func deploy(t *testing.T, path string) (*Runtime, *DeployReceipt, error) {
 	Init(true, "")
 
 	rt, err := NewRuntime()
 	assert.Nil(t, err);
 
-	msg := ReadFile(t, path)
+	msg := readFile(t, path)
 	gas := 1000000000
 	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
@@ -28,8 +28,8 @@ func Deploy(t *testing.T, path string) (*Runtime, *DeployReceipt, error) {
 	return rt, receipt, err
 }
 
-func Spawn(t *testing.T, rt *Runtime, path string) (*SpawnReceipt, error) {
-	msg := ReadFile(t, path)
+func spawn(t *testing.T, rt *Runtime, path string) (*SpawnReceipt, error) {
+	msg := readFile(t, path)
 	gas := 1000000000
 	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
@@ -87,7 +87,7 @@ func TestValidateDeployValid(t *testing.T) {
 	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
-	msg := ReadFile(t, "inputs/deploy.svm")
+	msg := readFile(t, "inputs/deploy.svm")
 	valid, err := rt.ValidateDeploy(msg)
 	assert.True(t, valid)
 	assert.Nil(t, err)
@@ -121,7 +121,7 @@ func TestDeployOutOfGas(t *testing.T) {
 	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
-	msg := ReadFile(t, "inputs/deploy.svm")
+	msg := readFile(t, "inputs/deploy.svm")
 	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
 
@@ -133,7 +133,7 @@ func TestDeployOutOfGas(t *testing.T) {
 }
 
 func TestDeploySuccess(t *testing.T) {
-	rt, receipt, err := Deploy(t, "inputs/deploy.svm")
+	rt, receipt, err := deploy(t, "inputs/deploy.svm")
 	defer rt.Destroy()
 
 	assert.Nil(t, err)
@@ -141,7 +141,7 @@ func TestDeploySuccess(t *testing.T) {
 }
 
 func TestSpawnValidateInvalid(t *testing.T) {
-	rt, _, _ := Deploy(t, "inputs/deploy.svm")
+	rt, _, _ := deploy(t, "inputs/deploy.svm")
 	defer rt.Destroy()
 
 	msg := []byte{0, 0, 0, 0}
@@ -150,19 +150,19 @@ func TestSpawnValidateInvalid(t *testing.T) {
 }
 
 func TestSpawnValidateValid(t *testing.T) {
-	rt, _, _ := Deploy(t, "inputs/deploy.svm")
+	rt, _, _ := deploy(t, "inputs/deploy.svm")
 	defer rt.Destroy()
 
-	msg := ReadFile(t, "inputs/spawn/spawn-1.json.bin")
+	msg := readFile(t, "inputs/spawn/spawn-1.json.bin")
 	isValid, _ := rt.ValidateSpawn(msg)
 	assert.True(t, isValid)
 }
 
 func TestSpawnOutOfGas(t *testing.T) {
-	rt, _, _ := Deploy(t, "inputs/deploy.svm")
+	rt, _, _ := deploy(t, "inputs/deploy.svm")
 	defer rt.Destroy()
 
-	msg := ReadFile(t, "inputs/spawn/spawn-1.json.bin")
+	msg := readFile(t, "inputs/spawn/spawn-1.json.bin")
 	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
 
@@ -174,10 +174,10 @@ func TestSpawnOutOfGas(t *testing.T) {
 }
 
 func TestSpawnSuccess(t *testing.T) {
-	rt, _, _ := Deploy(t, "inputs/deploy.svm")
+	rt, _, _ := deploy(t, "inputs/deploy.svm")
 	defer rt.Destroy()
 
-	receipt, err := Spawn(t, rt, "inputs/spawn/spawn-1.json.bin")
+	receipt, err := spawn(t, rt, "inputs/spawn/spawn-1.json.bin")
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
 	assert.NotNil(t, receipt.InitState)
