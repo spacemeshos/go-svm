@@ -7,17 +7,41 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func ReadTemplate(t *testing.T, path string) []byte {
+func ReadFile(t *testing.T, path string) []byte {
 	bytes, err := ioutil.ReadFile(path)
 	assert.Nil(t, err)
 	return bytes
+}
+
+func Deploy(t *testing.T, path string) (*Runtime, *DeployReceipt, error) {
+	Init(true, "")
+
+	rt, err := NewRuntime()
+	assert.Nil(t, err);
+
+	msg := ReadFile(t, path)
+	gas := 1000000000
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
+	ctx := NewContext(Layer(0), TxId{})
+
+	receipt, err := rt.Deploy(env, msg, ctx)
+	return rt, receipt, err
+}
+
+func Spawn(t *testing.T, rt *Runtime, path string) (*SpawnReceipt, error) {
+	msg := ReadFile(t, path)
+	gas := 1000000000
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
+	ctx := NewContext(Layer(0), TxId{})
+
+	receipt, err := rt.Spawn(env, msg, ctx)
+	return receipt, err
 }
 
 func TestInitMemoryNilErr(t *testing.T) {
 	assert.Equal(t, 0, RuntimesCount())
 	err := Init(true, "")
 	assert.Nil(t, err)
-
 	assert.Equal(t, 0, RuntimesCount())
 }
 
@@ -45,13 +69,25 @@ func TestValidateEmptyDeploy(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestValidateValidDeploy(t *testing.T) {
+func TestValidateDeployInvalid(t *testing.T) {
 	Init(true, "")
 
 	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
-	msg := ReadTemplate(t, "inputs/deploy.svm")
+	msg := []byte{0, 0, 0, 0}
+	valid, err := rt.ValidateDeploy(msg)
+	assert.False(t, valid)
+	assert.NotNil(t, err)
+}
+
+func TestValidateDeployValid(t *testing.T) {
+	Init(true, "")
+
+	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
+	msg := ReadFile(t, "inputs/deploy.svm")
 	valid, err := rt.ValidateDeploy(msg)
 	assert.True(t, valid)
 	assert.Nil(t, err)
@@ -85,7 +121,7 @@ func TestDeployOutOfGas(t *testing.T) {
 	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
-	msg := ReadTemplate(t, "inputs/deploy.svm")
+	msg := ReadFile(t, "inputs/deploy.svm")
 	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
 
@@ -97,17 +133,53 @@ func TestDeployOutOfGas(t *testing.T) {
 }
 
 func TestDeploySuccess(t *testing.T) {
-	Init(true, "")
-
-	rt, _ := NewRuntime()
+	rt, receipt, err := Deploy(t, "inputs/deploy.svm")
 	defer rt.Destroy()
 
-	msg := ReadTemplate(t, "inputs/deploy.svm")
-	gas := 1000000000
-	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
-	ctx := NewContext(Layer(0), TxId{})
-
-	receipt, err := rt.Deploy(env, msg, ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
+}
+
+func TestSpawnValidateInvalid(t *testing.T) {
+	rt, _, _ := Deploy(t, "inputs/deploy.svm")
+	defer rt.Destroy()
+
+	msg := []byte{0, 0, 0, 0}
+	isValid, _ := rt.ValidateSpawn(msg)
+	assert.False(t, isValid)
+}
+
+func TestSpawnValidateValid(t *testing.T) {
+	rt, _, _ := Deploy(t, "inputs/deploy.svm")
+	defer rt.Destroy()
+
+	msg := ReadFile(t, "inputs/spawn/spawn-1.json.bin")
+	isValid, _ := rt.ValidateSpawn(msg)
+	assert.True(t, isValid)
+}
+
+func TestSpawnOutOfGas(t *testing.T) {
+	rt, _, _ := Deploy(t, "inputs/deploy.svm")
+	defer rt.Destroy()
+
+	msg := ReadFile(t, "inputs/spawn/spawn-1.json.bin")
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
+	ctx := NewContext(Layer(0), TxId{})
+
+	receipt, err := rt.Spawn(env, msg, ctx)
+	assert.Nil(t, err)
+
+	assert.Equal(t, false, receipt.Success)
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(OOG))
+}
+
+func TestSpawnSuccess(t *testing.T) {
+	rt, _, _ := Deploy(t, "inputs/deploy.svm")
+	defer rt.Destroy()
+
+	receipt, err := Spawn(t, rt, "inputs/spawn/spawn-1.json.bin")
+	assert.Nil(t, err)
+	assert.Equal(t, true, receipt.Success)
+	assert.NotNil(t, receipt.InitState)
+	assert.NotNil(t, receipt.AccountAddr)
 }
