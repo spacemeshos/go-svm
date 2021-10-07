@@ -4,7 +4,7 @@ svm.h
 .DS_Store
 
 # Auto-generated tests inputs using the `svm-cli` command-line
-inputs/**/*.bin
+*/inputs/*/*.json.bin
 
 # Binaries for programs and plugins
 *.exe
