@@ -207,4 +207,13 @@ func TestCallSuccess(t *testing.T) {
 	receipt, err = call(t, rt, "inputs/call/load_addr.json.bin")
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
+
+	returns := receipt.ReturnData
+	assert.Equal(t, len(returns), 1+AddressLength)
+
+	// type is `Address`
+	assert.Equal(t, returns[0], byte(0x40))
+
+	// 102030405060708090102030405060708090AABB
+	assert.Equal(t, returns[1:], []byte{16, 32, 48, 64, 80, 96, 112, 128, 144, 16, 32, 48, 64, 80, 96, 112, 128, 144, 170, 187})
 }

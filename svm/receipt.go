@@ -188,7 +188,7 @@ func decodeReturnData(bytes []byte) (ReturnData, []byte) {
 	nextOffset := offset + returnsSize
 	copy(returns, bytes[offset:nextOffset])
 
-	return nil, bytes[nextOffset:]
+	return returns, bytes[nextOffset:]
 }
 
 func decodeLogs(bytes []byte) ([]Log, []byte) {
