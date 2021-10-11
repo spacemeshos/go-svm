@@ -151,7 +151,9 @@ func TestDeploySuccess(t *testing.T) {
 }
 
 func TestSpawnValidateInvalid(t *testing.T) {
-	rt, _, _ := deploy(t, "inputs/template_example.svm")
+	Init(true, "")
+
+	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
 	msg := []byte{0, 0, 0, 0}
@@ -160,10 +162,12 @@ func TestSpawnValidateInvalid(t *testing.T) {
 }
 
 func TestSpawnValidateValid(t *testing.T) {
-	rt, _, _ := deploy(t, "inputs/template_example.svm")
+	Init(true, "")
+
+	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
-	msg := readFile(t, "inputs/spawn/spawn-1.json.bin")
+	msg := readFile(t, "inputs/spawn/initialize.json.bin")
 	isValid, _ := rt.ValidateSpawn(msg)
 	assert.True(t, isValid)
 }
@@ -172,7 +176,7 @@ func TestSpawnOutOfGas(t *testing.T) {
 	rt, _, _ := deploy(t, "inputs/template_example.svm")
 	defer rt.Destroy()
 
-	msg := readFile(t, "inputs/spawn/spawn-1.json.bin")
+	msg := readFile(t, "inputs/spawn/initialize.json.bin")
 	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
 
@@ -195,6 +199,45 @@ func TestSpawnSuccess(t *testing.T) {
 	assert.NotNil(t, receipt.AccountAddr)
 }
 
+func TestCallValidateInvalid(t *testing.T) {
+	Init(true, "")
+
+	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
+	msg := []byte{0, 0, 0, 0}
+	isValid, _ := rt.ValidateCall(msg)
+	assert.False(t, isValid)
+}
+
+func TestCallValidateValid(t *testing.T) {
+	Init(true, "")
+
+	rt, _ := NewRuntime()
+	defer rt.Destroy()
+
+	msg := readFile(t, "inputs/call/load_addr.json.bin")
+	isValid, _ := rt.ValidateCall(msg)
+	assert.True(t, isValid)
+}
+
+func TestCallOutOfGas(t *testing.T) {
+	rt, _, _ := deploy(t, "inputs/template_example.svm")
+	defer rt.Destroy()
+
+	spawn(t, rt, "inputs/spawn/initialize.json.bin")
+
+	msg := readFile(t, "inputs/call/store_addr.json.bin")
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
+	ctx := NewContext(Layer(0), TxId{})
+
+	receipt, err := rt.Call(env, msg, ctx)
+	assert.Nil(t, err)
+
+	assert.Equal(t, false, receipt.Success)
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(OOG))
+}
+
 func TestCallSuccess(t *testing.T) {
 	rt, _, _ := deploy(t, "inputs/template_example.svm")
 	defer rt.Destroy()
@@ -214,6 +257,6 @@ func TestCallSuccess(t *testing.T) {
 	// type is `Address`
 	assert.Equal(t, returns[0], byte(0x40))
 
-	// 102030405060708090102030405060708090AABB
+	// expected loaded Address to be `102030405060708090102030405060708090AABB`
 	assert.Equal(t, returns[1:], []byte{16, 32, 48, 64, 80, 96, 112, 128, 144, 16, 32, 48, 64, 80, 96, 112, 128, 144, 170, 187})
 }
