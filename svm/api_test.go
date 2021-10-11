@@ -204,7 +204,7 @@ func TestCallSuccess(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
 
-	// call(t, rt, "inputs/call/load_addr.json.bin")
-	// assert.Nil(t, err)
-	// assert.Equal(t, true, receipt.Success)
+	receipt, err = call(t, rt, "inputs/call/load_addr.json.bin")
+	assert.Nil(t, err)
+	assert.Equal(t, true, receipt.Success)
 }

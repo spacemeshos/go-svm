@@ -146,8 +146,8 @@ func decodeSpawnReceipt(bytes []byte) (*SpawnReceipt, error) {
 
 func decodeCallReceipt(bytes []byte) (*CallReceipt, error) {
 	newState, bytes := decodeState(bytes)
-	gas, bytes := decodeGas(bytes)
 	returndata, bytes := decodeReturnData(bytes)
+	gas, bytes := decodeGas(bytes)
 	logs, _ := decodeLogs(bytes)
 
 	receipt := &CallReceipt{

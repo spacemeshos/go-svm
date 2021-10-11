@@ -54,7 +54,7 @@ func encodeEnvelope(env *Envelope) [EnvelopeLength]byte {
 ///  |             | 			  |
 ///  +-------------+--------------+
 /// ```
-func encodeContext(ctx *Context) [ContextLength]byte {
+func encodeContext(ctx *Context) []byte {
 	bytes := [ContextLength]byte{0}
 
 	// `Layer`
@@ -65,7 +65,7 @@ func encodeContext(ctx *Context) [ContextLength]byte {
 	p += LayerLength
 	copy(bytes[p:p+TxIdLength], ctx.TxId[:])
 
-	return bytes
+	return bytes[:]
 }
 
 func decodeAddress(bytes []byte) ([AddressLength]byte, []byte) {
@@ -75,7 +75,7 @@ func decodeAddress(bytes []byte) ([AddressLength]byte, []byte) {
 	return addr, bytes[AddressLength:]
 }
 
-func decodeState(bytes []byte) ([StateLength]byte, []byte) {
+func decodeState(bytes []byte) (State, []byte) {
 	var state [StateLength]byte
 	copy(state[:], bytes[:StateLength])
 
