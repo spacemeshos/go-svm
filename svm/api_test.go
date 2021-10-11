@@ -1,7 +1,6 @@
 package svm
 
 import (
-	"encoding/hex"
 	"io/ioutil"
 	"testing"
 
@@ -36,6 +35,16 @@ func spawn(t *testing.T, rt *Runtime, path string) (*SpawnReceipt, error) {
 	ctx := NewContext(Layer(0), TxId{})
 
 	receipt, err := rt.Spawn(env, msg, ctx)
+	return receipt, err
+}
+
+func call(t *testing.T, rt *Runtime, path string) (*CallReceipt, error) {
+	msg := readFile(t, path)
+	gas := 1000000000
+	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
+	ctx := NewContext(Layer(0), TxId{})
+
+	receipt, err := rt.Call(env, msg, ctx)
 	return receipt, err
 }
 
@@ -184,26 +193,18 @@ func TestSpawnSuccess(t *testing.T) {
 	assert.Equal(t, true, receipt.Success)
 	assert.NotNil(t, receipt.InitState)
 	assert.NotNil(t, receipt.AccountAddr)
-
-	t.Log(hex.Dump(receipt.InitState[:]))
 }
 
 func TestCallSuccess(t *testing.T) {
-	// Deploy
 	rt, _, _ := deploy(t, "inputs/template_example.svm")
 	defer rt.Destroy()
 
-	// Spawn
-	receipt, err := spawn(t, rt, "inputs/spawn/initialize.json.bin")
+	spawn(t, rt, "inputs/spawn/initialize.json.bin")
+	receipt, err := call(t, rt, "inputs/call/store_addr.json.bin")
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
 
-	// Call
-	receipt, err = spawn(t, rt, "inputs/call/store_addr.json.bin")
-	assert.Nil(t, err)
-
-	t.Log(receipt.Error)
+	// call(t, rt, "inputs/call/load_addr.json.bin")
+	// assert.Nil(t, err)
 	// assert.Equal(t, true, receipt.Success)
-	// assert.NotNil(t, receipt.InitState)
-	// assert.NotNil(t, receipt.AccountAddr)
 }
