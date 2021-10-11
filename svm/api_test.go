@@ -1,6 +1,7 @@
 package svm
 
 import (
+	"encoding/hex"
 	"io/ioutil"
 	"testing"
 
@@ -17,7 +18,7 @@ func deploy(t *testing.T, path string) (*Runtime, *DeployReceipt, error) {
 	Init(true, "")
 
 	rt, err := NewRuntime()
-	assert.Nil(t, err);
+	assert.Nil(t, err)
 
 	msg := readFile(t, path)
 	gas := 1000000000
@@ -87,7 +88,7 @@ func TestValidateDeployValid(t *testing.T) {
 	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
-	msg := readFile(t, "inputs/deploy.svm")
+	msg := readFile(t, "inputs/template_example.svm")
 	valid, err := rt.ValidateDeploy(msg)
 	assert.True(t, valid)
 	assert.Nil(t, err)
@@ -121,7 +122,7 @@ func TestDeployOutOfGas(t *testing.T) {
 	rt, _ := NewRuntime()
 	defer rt.Destroy()
 
-	msg := readFile(t, "inputs/deploy.svm")
+	msg := readFile(t, "inputs/template_example.svm")
 	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
 	ctx := NewContext(Layer(0), TxId{})
 
@@ -133,7 +134,7 @@ func TestDeployOutOfGas(t *testing.T) {
 }
 
 func TestDeploySuccess(t *testing.T) {
-	rt, receipt, err := deploy(t, "inputs/deploy.svm")
+	rt, receipt, err := deploy(t, "inputs/template_example.svm")
 	defer rt.Destroy()
 
 	assert.Nil(t, err)
@@ -141,7 +142,7 @@ func TestDeploySuccess(t *testing.T) {
 }
 
 func TestSpawnValidateInvalid(t *testing.T) {
-	rt, _, _ := deploy(t, "inputs/deploy.svm")
+	rt, _, _ := deploy(t, "inputs/template_example.svm")
 	defer rt.Destroy()
 
 	msg := []byte{0, 0, 0, 0}
@@ -150,7 +151,7 @@ func TestSpawnValidateInvalid(t *testing.T) {
 }
 
 func TestSpawnValidateValid(t *testing.T) {
-	rt, _, _ := deploy(t, "inputs/deploy.svm")
+	rt, _, _ := deploy(t, "inputs/template_example.svm")
 	defer rt.Destroy()
 
 	msg := readFile(t, "inputs/spawn/spawn-1.json.bin")
@@ -159,7 +160,7 @@ func TestSpawnValidateValid(t *testing.T) {
 }
 
 func TestSpawnOutOfGas(t *testing.T) {
-	rt, _, _ := deploy(t, "inputs/deploy.svm")
+	rt, _, _ := deploy(t, "inputs/template_example.svm")
 	defer rt.Destroy()
 
 	msg := readFile(t, "inputs/spawn/spawn-1.json.bin")
@@ -174,12 +175,35 @@ func TestSpawnOutOfGas(t *testing.T) {
 }
 
 func TestSpawnSuccess(t *testing.T) {
-	rt, _, _ := deploy(t, "inputs/deploy.svm")
+	rt, _, _ := deploy(t, "inputs/template_example.svm")
 	defer rt.Destroy()
 
-	receipt, err := spawn(t, rt, "inputs/spawn/spawn-1.json.bin")
+	receipt, err := spawn(t, rt, "inputs/spawn/initialize.json.bin")
 	assert.Nil(t, err)
+
 	assert.Equal(t, true, receipt.Success)
 	assert.NotNil(t, receipt.InitState)
 	assert.NotNil(t, receipt.AccountAddr)
+
+	t.Log(hex.Dump(receipt.InitState[:]))
+}
+
+func TestCallSuccess(t *testing.T) {
+	// Deploy
+	rt, _, _ := deploy(t, "inputs/template_example.svm")
+	defer rt.Destroy()
+
+	// Spawn
+	receipt, err := spawn(t, rt, "inputs/spawn/initialize.json.bin")
+	assert.Nil(t, err)
+	assert.Equal(t, true, receipt.Success)
+
+	// Call
+	receipt, err = spawn(t, rt, "inputs/call/store_addr.json.bin")
+	assert.Nil(t, err)
+
+	t.Log(receipt.Error)
+	// assert.Equal(t, true, receipt.Success)
+	// assert.NotNil(t, receipt.InitState)
+	// assert.NotNil(t, receipt.AccountAddr)
 }
