@@ -75,7 +75,7 @@ func decodeAddress(bytes []byte) ([AddressLength]byte, []byte) {
 	return addr, bytes[AddressLength:]
 }
 
-func decodeState(bytes []byte) ([StateLength]byte, []byte) {
+func decodeState(bytes []byte) (State, []byte) {
 	var state [StateLength]byte
 	copy(state[:], bytes[:StateLength])
 

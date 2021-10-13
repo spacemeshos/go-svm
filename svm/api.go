@@ -86,6 +86,7 @@ func RuntimesCount() int {
 }
 
 func ReceiptsCount() int {
+	// TODO
 	return 0
 	// count := C.uint32(0)
 	// result := C.svm_receipts_count(&count)
