@@ -31,7 +31,7 @@ jobs:
           set -e
           echo '${{ secrets.GITHUB_TOKEN }}' | gh auth login --with-token
           ./download_artifacts.sh
-      - generate-transactions:
+      - name: Generate Binary Transactions
         run: |
           set -e
           cd svm/inputs
