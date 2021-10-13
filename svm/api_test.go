@@ -23,37 +23,60 @@ func runtimeSetup(t *testing.T) *Runtime {
 	return rt
 }
 
-func executeTx(t *testing.T, rt *Runtime, path string, f func(*Runtime, *Envelope, []byte, *Context) (interface{}, error)) (interface{}, error) {
+type TestParams struct {
+	Amount    Amount
+	Principal Address
+	Nonce     TxNonce
+	TxId      TxId
+	Gas       Gas
+	GasFee    GasFee
+	Layer     Layer
+}
+
+func NewTestParams() *TestParams {
+	// # Note
+	// We inject by default a super high Gas to avoid running Out-of-Gas
+	return &TestParams{
+		Amount:    Amount(0),
+		Principal: Address{},
+		Nonce:     TxNonce{Upper: 0, Lower: 0},
+		TxId:      TxId{},
+		Gas:       Gas(1000000000),
+		GasFee:    GasFee(0),
+		Layer:     Layer(0),
+	}
+}
+
+func executeTx(t *testing.T, rt *Runtime, path string, params *TestParams, f func(*Runtime, *Envelope, []byte, *Context) (interface{}, error)) (interface{}, error) {
 	msg := readFile(t, path)
-	gas := 1000000000
-	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(gas), GasFee(0))
-	ctx := NewContext(Layer(0), TxId{})
+	env := NewEnvelope(params.Principal, params.Amount, params.Nonce, params.Gas, params.GasFee)
+	ctx := NewContext(params.Layer, params.TxId)
 
 	receipt, err := f(rt, env, msg, ctx)
 	return receipt, err
 }
 
-func deploy(t *testing.T, rt *Runtime, path string) (*DeployReceipt, error) {
+func deploy(t *testing.T, rt *Runtime, path string, params *TestParams) (*DeployReceipt, error) {
 	receipt, err :=
-		executeTx(t, rt, path, func(rt *Runtime, env *Envelope, msg []byte, ctx *Context) (interface{}, error) {
+		executeTx(t, rt, path, params, func(rt *Runtime, env *Envelope, msg []byte, ctx *Context) (interface{}, error) {
 			return rt.Deploy(env, msg, ctx)
 		})
 
 	return receipt.(*DeployReceipt), err
 }
 
-func spawn(t *testing.T, rt *Runtime, path string) (*SpawnReceipt, error) {
+func spawn(t *testing.T, rt *Runtime, path string, params *TestParams) (*SpawnReceipt, error) {
 	receipt, err :=
-		executeTx(t, rt, path, func(rt *Runtime, env *Envelope, msg []byte, ctx *Context) (interface{}, error) {
+		executeTx(t, rt, path, params, func(rt *Runtime, env *Envelope, msg []byte, ctx *Context) (interface{}, error) {
 			return rt.Spawn(env, msg, ctx)
 		})
 
 	return receipt.(*SpawnReceipt), err
 }
 
-func call(t *testing.T, rt *Runtime, path string) (*CallReceipt, error) {
+func call(t *testing.T, rt *Runtime, path string, params *TestParams) (*CallReceipt, error) {
 	receipt, err :=
-		executeTx(t, rt, path, func(rt *Runtime, env *Envelope, msg []byte, ctx *Context) (interface{}, error) {
+		executeTx(t, rt, path, params, func(rt *Runtime, env *Envelope, msg []byte, ctx *Context) (interface{}, error) {
 			return rt.Call(env, msg, ctx)
 		})
 
@@ -140,7 +163,7 @@ func TestDeployOutOfGas(t *testing.T) {
 
 func TestDeploySuccess(t *testing.T) {
 	rt := runtimeSetup(t)
-	receipt, err := deploy(t, rt, "inputs/template_example.svm")
+	receipt, err := deploy(t, rt, "inputs/template_example.svm", NewTestParams())
 	defer rt.Destroy()
 
 	assert.Nil(t, err)
@@ -169,15 +192,13 @@ func TestSpawnOutOfGas(t *testing.T) {
 	rt := runtimeSetup(t)
 	defer rt.Destroy()
 
-	deploy(t, rt, "inputs/template_example.svm")
+	deploy(t, rt, "inputs/template_example.svm", NewTestParams())
 
-	msg := readFile(t, "inputs/spawn/initialize.json.bin")
-	env := NewEnvelope(Address{}, Amount(10), TxNonce{Upper: 0, Lower: 0}, Gas(10), GasFee(0))
-	ctx := NewContext(Layer(0), TxId{})
+	params := NewTestParams()
+	params.Gas = Gas(10)
+	receipt, err := spawn(t, rt, "inputs/spawn/initialize.json.bin", params)
 
-	receipt, err := rt.Spawn(env, msg, ctx)
 	assert.Nil(t, err)
-
 	assert.Equal(t, false, receipt.Success)
 	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(OOG))
 }
@@ -186,11 +207,10 @@ func TestSpawnSuccess(t *testing.T) {
 	rt := runtimeSetup(t)
 	defer rt.Destroy()
 
-	deploy(t, rt, "inputs/template_example.svm")
+	deploy(t, rt, "inputs/template_example.svm", NewTestParams())
+	receipt, err := spawn(t, rt, "inputs/spawn/initialize.json.bin", NewTestParams())
 
-	receipt, err := spawn(t, rt, "inputs/spawn/initialize.json.bin")
 	assert.Nil(t, err)
-
 	assert.Equal(t, true, receipt.Success)
 	assert.NotNil(t, receipt.InitState)
 	assert.NotNil(t, receipt.AccountAddr)
@@ -237,13 +257,13 @@ func TestCallSuccess(t *testing.T) {
 	rt := runtimeSetup(t)
 	defer rt.Destroy()
 
-	deploy(t, rt, "inputs/template_example.svm")
-	spawn(t, rt, "inputs/spawn/initialize.json.bin")
-	receipt, err := call(t, rt, "inputs/call/store_addr.json.bin")
+	deploy(t, rt, "inputs/template_example.svm", NewTestParams())
+	spawn(t, rt, "inputs/spawn/initialize.json.bin", NewTestParams())
+	receipt, err := call(t, rt, "inputs/call/store_addr.json.bin", NewTestParams())
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
 
-	receipt, err = call(t, rt, "inputs/call/load_addr.json.bin")
+	receipt, err = call(t, rt, "inputs/call/load_addr.json.bin", NewTestParams())
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
 
