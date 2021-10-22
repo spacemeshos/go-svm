@@ -16,13 +16,6 @@ import (
 	artifacts "github.com/spacemeshos/go-svm/pkg/artifacts"
 )
 
-func libPath(artifactsDir string) string {
-	path := filepath.Join(artifactsDir, "bins-Linux-release")
-	path += ":" + filepath.Join(artifactsDir, "bins-macOS-release")
-	path += ":" + filepath.Join(artifactsDir, "bins-Windows-release")
-	return path
-}
-
 func DownloadArtifactsToDir(dir string) error {
 	linuxZip := filepath.Join(dir, "bins-Linux-release.zip")
 	gitkeep := filepath.Join(dir, ".gitkeep")
@@ -55,12 +48,11 @@ func Build() error {
 }
 
 func environWithLibPaths(here string) []string {
-	artifacts := filepath.Join(here, "svm", "artifacts")
-	libPath := libPath(artifacts)
+	artifactsDir := filepath.Join(here, "svm", "artifacts")
 
 	env := os.Environ()
-	env = append(env, fmt.Sprintf("LD_LIBRARY_PATH=%s", libPath))
-	env = append(env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s", libPath))
+	env = append(env, fmt.Sprintf("LD_LIBRARY_PATH=%s", artifactsDir))
+	env = append(env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s", artifactsDir))
 
 	return env
 }
