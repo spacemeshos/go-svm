@@ -35,6 +35,7 @@ func DownloadArtifactsToDir(dir string) error {
 	if err := artifacts.Download("master", token, dir); err != nil {
 		log.Panic(err)
 	}
+	os.Remove(filepath.Join(dir, "svm.lib"))
 
 	return nil
 }
