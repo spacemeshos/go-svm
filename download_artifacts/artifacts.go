@@ -18,6 +18,7 @@ import (
 func Download(branch, token, dest string) error {
 	ctx := context.Background()
 	gh := github.NewClient(httpClient(ctx, token))
+	goos := runtime.GOOS
 
 	workflow, _, err := gh.Actions.GetWorkflowByFileName(ctx, "spacemeshos", "svm", "ci.yml")
 	if err != nil {
@@ -43,7 +44,6 @@ func Download(branch, token, dest string) error {
 	os.MkdirAll(dest, 0777)
 	for _, artifact := range artifacts.Artifacts {
 		name := strings.ToLower(*artifact.Name)
-		goos := runtime.GOOS
 		if name == "svm_codec.wasm" {
 			downloadArtifact(artifact, dest, token)
 		} else if name == "bins-linux-release" && goos == "linux" {
@@ -55,7 +55,13 @@ func Download(branch, token, dest string) error {
 		}
 	}
 
-	err = os.Chmod(filepath.Join(dest, "svm-cli"), 0755)
+	var cli string
+	if goos == "windows" {
+		cli = "svm-cli.exe"
+	} else {
+		cli = "svm-cli"
+	}
+	err = os.Chmod(filepath.Join(dest, cli), 0755)
 	if err != nil {
 		return err
 	}
