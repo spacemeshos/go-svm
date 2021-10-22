@@ -27,9 +27,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
       - run: |
-          go install ./cmd/artifacts
-          go build ./cmd/artifacts
-          go run mage.go install
+          go run mage.go test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate Binary Transactions
