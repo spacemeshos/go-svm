@@ -30,7 +30,7 @@ func DownloadArtifactsToDir(dir string) error {
 	os.OpenFile(gitkeep, os.O_RDONLY|os.O_CREATE, os.ModePerm)
 
 	token := os.Getenv("GITHUB_TOKEN")
-	fmt.Printf("Using the GitHub token '%s'", token)
+	fmt.Printf("Using the GitHub token '%s'\n", token)
 
 	if err := artifacts.Download("master", token, dir); err != nil {
 		log.Panic(err)
