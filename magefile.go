@@ -17,10 +17,10 @@ import (
 )
 
 func DownloadArtifactsToDir(dir string) error {
-	linuxZip := filepath.Join(dir, "bins-Linux-release.zip")
+	svmCodecWASM := filepath.Join(dir, "svm_codec.wasm")
 	gitkeep := filepath.Join(dir, ".gitkeep")
 
-	if _, err := os.Stat(linuxZip); err == nil {
+	if _, err := os.Stat(svmCodecWASM); err == nil {
 		fmt.Printf("Artifact files are already present.\n")
 		return nil
 	}
