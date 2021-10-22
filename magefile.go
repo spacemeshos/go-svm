@@ -12,9 +12,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	artifacts "github.com/spacemeshos/go-svm/pkg/artifacts"
-
 	"github.com/magefile/mage/mg"
+	"github.com/spacemeshos/go-svm/artifacts"
 )
 
 func DownloadArtifactsToDir(dir string) error {
