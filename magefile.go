@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/magefile/mage/mg"
-	"github.com/spacemeshos/go-svm/artifacts"
+	artifacts "github.com/spacemeshos/go-svm/download_artifacts"
 )
 
 func DownloadArtifactsToDir(dir string) error {
