@@ -55,6 +55,11 @@ func Download(branch, token, dest string) error {
 		}
 	}
 
+	err = os.Chmod(filepath.Join(dest, "svm-cli"), 0755)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
