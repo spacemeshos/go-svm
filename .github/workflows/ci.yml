@@ -19,8 +19,18 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          stable: true
+          go-version: "1.15"
       - name: Checkout sources
         uses: actions/checkout@v2
+      - name: Generate Binary Transactions
+        run: |
+          set -e
+          cd svm/inputs
+          ./generate_txs.sh
       - run: go run mage.go test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

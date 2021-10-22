@@ -1,0 +1,10 @@
+{
+  "version": 0,
+  "template": "b5eba98957e6a93173ffb50207cceeedfddb1a72",
+  "name": "My Account",
+  "ctor_name": "initialize",
+  "calldata": {
+    "abi": ["address", "bool"],
+    "data": ["8f20ed1a0e342c2a75b1b3f8014545dd3d886078", true]
+  }
+}

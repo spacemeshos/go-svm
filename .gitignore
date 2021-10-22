@@ -2,6 +2,9 @@
 !*/artifacts/.gitkeep
 .DS_Store
 
+# Auto-generated tests inputs using the `svm-cli` command-line
+*/inputs/*/*.json.bin
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

@@ -9,35 +9,21 @@ package svm
 // #include "memory.h"
 import "C"
 import (
-	"encoding/binary"
 	"errors"
 	"unsafe"
 )
 
-func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
-	size := C.int(res.buf_size)
-
-	receipt := ([]byte)(nil)
-	err := (error)(nil)
-
-	if res.receipt != nil {
-		ptr := unsafe.Pointer(res.receipt)
-		receipt = C.GoBytes(ptr, size)
-	} else if res.error != nil {
-		ptr := unsafe.Pointer(res.error)
-		err = errors.New(string(C.GoBytes(ptr, size)))
-	}
-
-	C.free(unsafe.Pointer(res.receipt))
-	C.free(unsafe.Pointer(res.error))
-
-	return receipt, err
+type svmParams struct {
+	envPtr *C.uchar
+	msgPtr *C.uchar
+	msgLen C.uint32_t
+	ctxPtr *C.uchar
 }
 
 // TODO: we might want to guard calling `Init` with a Mutex.
 var initialized = false
 
-// `Init` should be called at least once before interacting with any other API of SVM.
+// `Init` must be called at least once before interacting with any other API of SVM.
 // Each future call to `NewRuntime` (see later) assumes the settings given the `Init` call.
 //
 // Please note that this function is idempotent and won't do anything after the
@@ -60,8 +46,10 @@ func Init(inMemory bool, path string) error {
 	bytes := ([]byte)(path)
 	rawPath := (*C.uchar)(unsafe.Pointer(&bytes))
 	pathLen := (C.uint32_t)(uint32(len(path)))
-	var res C.struct_svm_result_t = C.svm_init((C.bool)(inMemory), rawPath, pathLen)
-	copySvmResult(res)
+	res := C.svm_init((C.bool)(inMemory), rawPath, pathLen)
+	if _, err := copySvmResult(res); err != nil {
+		panic("Init has failed!")
+	}
 
 	return nil
 }
@@ -97,6 +85,7 @@ func RuntimesCount() int {
 }
 
 func ReceiptsCount() int {
+	// TODO
 	return 0
 	// count := C.uint32(0)
 	// result := C.svm_receipts_count(&count)
@@ -115,12 +104,9 @@ func (rt *Runtime) Destroy() {
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
 func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(len(msg))
-	res := C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
-	_, err := copySvmResult(res)
-
-	return err == nil, err
+	return runValidation(msg, func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t {
+		return C.svm_validate_deploy(rt.raw, rawMsg, msgLen)
+	})
 }
 
 // Executes a `Deploy` transaction and returns back a receipt.
@@ -134,53 +120,26 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) DeployReceipt {
-	// `Envelope`
-	envBytes := EncodeEnvelope(env)
-	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes))
+func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) (*DeployReceipt, error) {
+	object, err := runAction(env, msg, ctx, func(params *svmParams) C.svm_result_t {
+		return C.svm_deploy(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	})
 
-	// `Message`
-	msgPtr := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(uint32(len(msg)))
-
-	// `Context`
-	ctxBytes := EncodeContext(ctx)
-	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes))
-
-	res := C.svm_deploy(rt.raw, envPtr, msgPtr, msgLen, ctxPtr)
-	_, err := copySvmResult(res)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	// TODO
-	return DeployReceipt{
-		Success:      true,
-		Error:        RuntimeError{},
-		TemplateAddr: TemplateAddr{0},
-		GasUsed:      Gas(0),
-		Logs:         make([]Log, 0),
-	}
+	return object.(*DeployReceipt), nil
 }
 
 // Validates the `Spawn Message` given in its binary form.
 //
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
-func (rt *Runtime) ValidateSpawn(msg []byte) (bool, *ValidateError) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(len(msg))
-	res := C.svm_validate_spawn(rt.raw, rawMsg, msgLen)
-	_, err := copySvmResult(res)
-
-	if err == nil {
-		return true, nil
-	} else {
-		return false, &ValidateError{
-			Kind:    ParseError,
-			Message: err.Error(),
-		}
-	}
+func (rt *Runtime) ValidateSpawn(msg []byte) (bool, error) {
+	return runValidation(msg, func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t {
+		return C.svm_validate_spawn(rt.raw, rawMsg, msgLen)
+	})
 }
 
 // Executes a `Spawn` transaction and returns back a receipt.
@@ -195,28 +154,26 @@ func (rt *Runtime) ValidateSpawn(msg []byte) (bool, *ValidateError) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Spawn(env Envelope, msg []byte, ctx Context) SpawnReceipt {
-	panic("TODO")
+func (rt *Runtime) Spawn(env *Envelope, msg []byte, ctx *Context) (*SpawnReceipt, error) {
+	object, err := runAction(env, msg, ctx, func(params *svmParams) C.svm_result_t {
+		return C.svm_spawn(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return object.(*SpawnReceipt), nil
 }
 
 // Validates the `Call Message` given in its binary form.
 //
 // Returns `(true, nil)` when the `msg` is syntactically valid,
 // and `(false, error)` otherwise.  In that case `error` will have non-`nil` value.
-func (rt *Runtime) ValidateCall(msg []byte) (bool, *ValidateError) {
-	rawMsg := (*C.uchar)(unsafe.Pointer(&msg))
-	msgLen := (C.uint32_t)(len(msg))
-	res := C.svm_validate_call(rt.raw, rawMsg, msgLen)
-	_, err := copySvmResult(res)
-
-	if err == nil {
-		return true, nil
-	} else {
-		return false, &ValidateError{
-			Kind:    ParseError,
-			Message: err.Error(),
-		}
-	}
+func (rt *Runtime) ValidateCall(msg []byte) (bool, error) {
+	return runValidation(msg, func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t {
+		return C.svm_validate_call(rt.raw, rawMsg, msgLen)
+	})
 }
 
 // Executes a `Call` transaction and returns back a receipt.
@@ -230,8 +187,16 @@ func (rt *Runtime) ValidateCall(msg []byte) (bool, *ValidateError) {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Call(env Envelope, msg []byte, ctx Context) CallReceipt {
-	panic("TODO")
+func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, error) {
+	object, err := runAction(env, msg, ctx, func(params *svmParams) C.svm_result_t {
+		return C.svm_call(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return object.(*CallReceipt), nil
 }
 
 // Executes the `Verify` stage and returns back a receipt.
@@ -248,8 +213,16 @@ func (rt *Runtime) Call(env Envelope, msg []byte, ctx Context) CallReceipt {
 // # Notes
 //
 // A Receipt is always being returned, even if there was an internal error inside SVM.
-func (rt *Runtime) Verify(env Envelope, msg []byte, ctx Context) CallReceipt {
-	panic("TODO")
+func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, error) {
+	object, err := runAction(env, msg, ctx, func(params *svmParams) C.svm_result_t {
+		return C.svm_verify(rt.raw, params.envPtr, params.msgPtr, params.msgLen, params.ctxPtr)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return object.(*CallReceipt), nil
 }
 
 // Signaling `SVM` that we are about to start playing a list of transactions under the input `layer` Layer.
@@ -287,7 +260,7 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 	panic("TODO")
 }
 
-func (rt *Runtime) CreateAccount(acc Account) error {
+func (rt *Runtime) CreateAccount(account Account) error {
 	panic("TODO")
 }
 
@@ -301,77 +274,90 @@ func (rt *Runtime) IncreaseBalance(addr Address, amount Amount) {
 	panic("TODO")
 }
 
-func NewEvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) Envelope {
-	env := Envelope{}
-	env.Principal = principal
-	env.Amount = amount
-	env.TxNonce = txNonce
-	env.GasLimit = gasLimit
-	env.GasFee = gasFee
-	return env
+func NewEnvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) *Envelope {
+	return &Envelope{
+		Principal: principal,
+		Amount:    amount,
+		TxNonce:   txNonce,
+		GasLimit:  gasLimit,
+		GasFee:    gasFee,
+	}
 }
 
-//
-// In other words, holds fields which are part of any transaction regardless of its type (i.e `Deploy/Spawn/Call`).
-/// Encoding of a binary [`Envelope`].
-///
-/// ```text
-///  +-------------+--------------+----------------+----------------+----------------+
-///  |             |              |			       |                |				 |
-///  |  Principal  |    Amount    |    Tx Nonce    |   Gas Limit    |    Gas Fee 	 |
-///  |  (Address)  |    (u64)     |     (u128)     |     (u64)      |     (u64)	 	 |
-///  |             |              |                |                |				 |
-///  |  20 bytes   |   8 bytes    |    16 bytes    |    8 bytes     |    8 bytes     |
-///  |             | (Big-Endian) |  (Big-Endian)  |  (Big-Endian)  |  (Big-Endian)  |
-///  |             |              |                |                |			     |
-///  +-------------+--------------+----------------+----------------+----------------+
-/// ```
-func EncodeEnvelope(env *Envelope) [EnvelopeLength]byte {
-	bytes := [EnvelopeLength]byte{0}
-
-	// `Principal`
-	copy(bytes[:AddressLength], env.Principal[:])
-
-	// `Amount`
-	p := AddressLength
-	binary.BigEndian.PutUint64(bytes[p:p+AmountLength], (uint64)(env.Amount))
-
-	// `Tx Nonce`
-	p += TxNonceLength
-	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], (uint64)(env.TxNonce.Upper))
-	binary.BigEndian.PutUint64(bytes[p:p+TxNonceLength/2], (uint64)(env.TxNonce.Lower))
-
-	// `Gas Limit`
-	p += GasLength
-	binary.BigEndian.PutUint64(bytes[p:p+GasLength], (uint64)(env.GasLimit))
-
-	// `Gas Fee`
-	p += GasFeeLength
-	binary.BigEndian.PutUint64(bytes[p:p+GasFeeLength], (uint64)(env.GasFee))
-
-	return bytes
+func NewContext(layer Layer, txId TxId) *Context {
+	return &Context{
+		Layer: layer,
+		TxId:  txId,
+	}
 }
 
-/// ```text
-///  +-------------+--------------+
-///  |             |              |
-///  |    Layer    |    Tx Id     |
-///  |   (u64)     |    (Blob)    |
-///  |             |              |
-///  |  8 bytes    |   32 bytes   |
-///  |             | 			  |
-///  +-------------+--------------+
-/// ```
-func EncodeContext(ctx *Context) [ContextLength]byte {
-	bytes := [ContextLength]byte{0}
+func toSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
+	envBytes := encodeEnvelope(env)
+	envPtr := (*C.uchar)(unsafe.Pointer(&envBytes[0]))
 
-	// `Layer`
-	p := 0
-	binary.BigEndian.PutUint64(bytes[:LayerLength], (uint64)(ctx.Layer))
+	msgPtr := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	msgLen := (C.uint32_t)(uint32(len(msg)))
 
-	// `Tx Id`
-	p += LayerLength
-	copy(bytes[p:p+TxIdLength], ctx.TxId[:])
+	ctxBytes := encodeContext(ctx)
+	ctxPtr := (*C.uchar)(unsafe.Pointer(&ctxBytes[0]))
 
-	return bytes
+	return &svmParams{
+		envPtr,
+		msgPtr,
+		msgLen,
+		ctxPtr,
+	}
+}
+
+func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
+	defer C.free(unsafe.Pointer(res.receipt))
+	defer C.free(unsafe.Pointer(res.error))
+
+	size := C.int(res.buf_size)
+
+	receipt := ([]byte)(nil)
+	err := (error)(nil)
+
+	if res.receipt != nil {
+		ptr := unsafe.Pointer(res.receipt)
+		receipt = C.GoBytes(ptr, size)
+	} else if res.error != nil {
+		ptr := unsafe.Pointer(res.error)
+		err = errors.New(string(C.GoBytes(ptr, size)))
+	}
+
+	return receipt, err
+}
+
+type svmAction func(params *svmParams) C.svm_result_t
+type svmValidation func(rawMsg *C.uchar, msgLen C.uint32_t) C.svm_result_t
+
+func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (interface{}, error) {
+	if len(msg) == 0 {
+		return false, errors.New("`msg` cannot be empty")
+	}
+
+	params := toSvmParams(env, msg, ctx)
+	res := action(params)
+	bytes, err := copySvmResult(res)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return decodeReceipt(bytes)
+}
+
+func runValidation(msg []byte, validator svmValidation) (bool, error) {
+	if len(msg) == 0 {
+		return false, errors.New("`msg` cannot be empty")
+	}
+
+	rawMsg := (*C.uchar)(unsafe.Pointer(&msg[0]))
+	msgLen := (C.uint32_t)(len(msg))
+
+	res := validator(rawMsg, msgLen)
+	_, err := copySvmResult(res)
+
+	return err == nil, err
 }

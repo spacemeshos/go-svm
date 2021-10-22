@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/magefile/mage/mg"
+	artifacts "github.com/spacemeshos/go-svm/pkg/artifacts"
 )
 
 func libPath(artifactsDir string) string {
@@ -38,12 +39,7 @@ func DownloadArtifactsToDir(dir string) error {
 	token := os.Getenv("GITHUB_TOKEN")
 	fmt.Printf("Using the GitHub token '%s'", token)
 
-	script := "cmd/svm-download-artifacts/svm-download-artifacts.go"
-	cmd := exec.Command("go", "run", script, "--token", token, "--dest", dir)
-	cmd.Env = os.Environ()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := artifacts.Download("master", token, dir); err != nil {
 		log.Panic(err)
 	}
 

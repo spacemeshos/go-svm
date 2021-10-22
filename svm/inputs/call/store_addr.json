@@ -1,0 +1,13 @@
+{
+  "version": 0,
+  "target": "066818abe361dd44f425da19e17c45babc40e232",
+  "func_name": "store_addr",
+  "verifydata": {
+    "abi": [],
+    "data": []
+  },
+  "calldata": {
+    "abi": ["address"],
+    "data": ["102030405060708090102030405060708090AABB"]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "version": 0,
+  "target": "066818abe361dd44f425da19e17c45babc40e232",
+  "func_name": "load_addr",
+  "verifydata": {
+    "abi": [],
+    "data": []
+  },
+  "calldata": {
+    "abi": [],
+    "data": []
+  }
+}
