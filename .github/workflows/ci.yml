@@ -27,6 +27,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
       - run: |
+          go install ./...
           go build ./cmd/artifacts
           go run mage.go install
         env:
