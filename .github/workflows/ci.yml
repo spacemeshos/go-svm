@@ -26,15 +26,15 @@ jobs:
           go-version: "1.15"
       - name: Checkout sources
         uses: actions/checkout@v2
-      - name: Download SVM artifacts
-        run: |
-          set -e
-          echo '${{ secrets.GITHUB_TOKEN }}' | gh auth login --with-token
-          ./download_artifacts.sh
+      - run: |
+          go run mage.go install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate Binary Transactions
         run: |
           set -e
           cd svm/inputs
           ./generate_txs.sh
-      - working-directory: svm
-        run: go test .
+      - run: go run mage.go test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
