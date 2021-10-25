@@ -38,6 +38,7 @@ func DownloadArtifactsToDir(dir string) error {
 	}
 
 	os.Remove(filepath.Join(dir, "svm.lib"))
+	os.Rename(filepath.Join(dir, "svm.dll"), filepath.Join(dir, "libsvm.dll.a"))
 	return nil
 }
 
