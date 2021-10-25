@@ -83,12 +83,10 @@ func environCGo(here string) []string {
 
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("CGO_CFLAGS=-I%s ", artifactsDir))
-	env = append(env, fmt.Sprintf("LD_LIBRARY_PATH=%s ", artifactsDir))
-	env = append(env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s ", artifactsDir))
 	if goos == "linux" {
-		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%s -lsvm -lm -ldl", artifactsDir))
+		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%s -lsvm -lm -ldl -Wl,-rpath,%s", artifactsDir, artifactsDir))
 	} else if goos == "darwin" {
-		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%s -lsvm -lm -ldl -framework Security -framework Foundation -Wl,-rpath,@loader_path", artifactsDir))
+		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%s -lsvm -lm -ldl -framework Security -framework Foundation -Wl,-rpath,%s", artifactsDir, artifactsDir))
 	} else if goos == "windows" {
 		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%s -lsvm", artifactsDir))
 	}
