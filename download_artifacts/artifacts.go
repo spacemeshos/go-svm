@@ -57,6 +57,7 @@ func Download(branch, token, dest string) error {
 				log.Fatal(err)
 			}
 
+			fmt.Println(dest)
 			for _, f := range files {
 				fmt.Println(f.Name())
 			}
