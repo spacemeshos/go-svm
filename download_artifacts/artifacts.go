@@ -44,13 +44,10 @@ func Download(branch, token, dest string) error {
 	os.MkdirAll(dest, 0777)
 	for _, artifact := range artifacts.Artifacts {
 		name := strings.ToLower(*artifact.Name)
-		if name == "svm_codec.wasm" {
-			downloadArtifact(artifact, dest, token)
-		} else if name == "bins-linux-release" && goos == "linux" {
-			downloadArtifact(artifact, dest, token)
-		} else if name == "bins-macos-release" && goos == "darwin" {
-			downloadArtifact(artifact, dest, token)
-		} else if name == "bins-windows-release" && goos == "windows" {
+		if name == "svm_codec.wasm" ||
+			(name == "bins-macos-release" && goos == "darwin") ||
+			(name == "bins-windows-release" && goos == "windows") ||
+			(name == "bins-linux-release" && goos != "darwin" && goos != "windows") {
 			downloadArtifact(artifact, dest, token)
 		}
 	}
