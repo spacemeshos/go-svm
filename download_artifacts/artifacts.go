@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -49,6 +51,15 @@ func Download(branch, token, dest string) error {
 			(name == "bins-windows-release" && goos == "windows") ||
 			(name == "bins-linux-release" && goos != "darwin" && goos != "windows") {
 			downloadArtifact(artifact, dest, token)
+
+			files, err := ioutil.ReadDir(dest)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			for _, f := range files {
+				fmt.Println(f.Name())
+			}
 		}
 	}
 

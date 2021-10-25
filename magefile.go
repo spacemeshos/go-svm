@@ -7,7 +7,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -81,15 +80,6 @@ func Test() error {
 func environCGo(here string) []string {
 	artifactsDir := filepath.Join(here, "svm", "artifacts")
 	goos := runtime.GOOS
-
-	files, err := ioutil.ReadDir(artifactsDir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, f := range files {
-		fmt.Println(f.Name())
-	}
 
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("CGO_CFLAGS=-I%s ", artifactsDir))
