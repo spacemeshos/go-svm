@@ -1,11 +1,5 @@
 package svm
 
-// #cgo CFLAGS: -I${SRCDIR}/artifacts/
-// #cgo LDFLAGS: -L${SRCDIR}/artifacts/
-// #cgo linux LDFLAGS: -lsvm -lm -ldl -Wl,-rpath
-// #cgo darwin LDFLAGS: -lsvm -lm -ldl -framework Security -framework Foundation -Wl,-rpath,@loader_path
-// #cgo windows LDFLAGS: -lsvm -lm
-//
 // #include "svm.h"
 // #include "memory.h"
 import "C"

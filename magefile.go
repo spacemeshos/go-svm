@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/magefile/mage/mg"
 	artifacts "github.com/spacemeshos/go-svm/download_artifacts"
@@ -55,8 +56,8 @@ func Install() error {
 	mg.Deps(Build)
 	mg.Deps(mg.F(DownloadArtifactsToDir, dir))
 
-	cmd := exec.Command("go", "install", "-x", "./...")
-	cmd.Env = environWithLibPaths(here)
+	cmd := exec.Command("go", "install", "./...")
+	cmd.Env = environCGo(here)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -70,18 +71,25 @@ func Test() error {
 
 	cmd := exec.Command("go", "test", "-p", "1", ".")
 	cmd.Dir = filepath.Join(here, "svm")
-	cmd.Env = environWithLibPaths(here)
+	cmd.Env = environCGo(here)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 
-func environWithLibPaths(here string) []string {
+func environCGo(here string) []string {
 	artifactsDir := filepath.Join(here, "svm", "artifacts")
+	goos := runtime.GOOS
 
 	env := os.Environ()
-	env = append(env, fmt.Sprintf("LD_LIBRARY_PATH=%s", artifactsDir))
-	env = append(env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s", artifactsDir))
+	env = append(env, fmt.Sprintf("CGO_CFLAGS=-I%s ", artifactsDir))
+	if goos == "linux" {
+		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%s -lsvm -lm -ldl", artifactsDir))
+	} else if goos == "darwin" {
+		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%s -lsvm -lm -ldl -framework Security -framework Foundation -Wl,-rpath,@loader_path", artifactsDir))
+	} else if goos == "windows" {
+		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%s -lsvm", artifactsDir))
+	}
 
 	return env
 }
