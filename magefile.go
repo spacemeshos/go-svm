@@ -37,6 +37,7 @@ func DownloadArtifactsToDir(dir string) error {
 		log.Panic(err)
 	}
 
+	os.Remove(filepath.Join(dir, "svm.lib"))
 	return nil
 }
 
