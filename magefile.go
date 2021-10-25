@@ -32,7 +32,7 @@ func DownloadArtifactsToDir(dir string) error {
 	token := os.Getenv("GITHUB_TOKEN")
 	fmt.Printf("Using the GitHub token '%s'\n", token)
 
-	if err := artifacts.Download("master", token, dir); err != nil {
+	if err := artifacts.Download("dylib-name", token, dir); err != nil {
 		log.Panic(err)
 	}
 	os.Remove(filepath.Join(dir, "svm.lib"))
@@ -46,16 +46,6 @@ func Build() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
-}
-
-func environWithLibPaths(here string) []string {
-	artifactsDir := filepath.Join(here, "svm", "artifacts")
-
-	env := os.Environ()
-	env = append(env, fmt.Sprintf("LD_LIBRARY_PATH=%s", artifactsDir))
-	env = append(env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s", artifactsDir))
-
-	return env
 }
 
 func Install() error {
@@ -84,4 +74,14 @@ func Test() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func environWithLibPaths(here string) []string {
+	artifactsDir := filepath.Join(here, "svm", "artifacts")
+
+	env := os.Environ()
+	env = append(env, fmt.Sprintf("LD_LIBRARY_PATH=%s", artifactsDir))
+	env = append(env, fmt.Sprintf("DYLD_LIBRARY_PATH=%s", artifactsDir))
+
+	return env
 }
