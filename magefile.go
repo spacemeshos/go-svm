@@ -33,7 +33,7 @@ func DownloadArtifactsToDir(dir string) error {
 	token := os.Getenv("GITHUB_TOKEN")
 	fmt.Printf("Using the GitHub token '%s'\n", token)
 
-	if err := artifacts.Download("master", token, dir); err != nil {
+	if err := artifacts.Download("fix-windows-artifacts", token, dir); err != nil {
 		log.Panic(err)
 	}
 
