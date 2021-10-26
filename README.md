@@ -268,12 +268,6 @@ The function is **idempotent** and won't do anything after the first call.
 ```go
 
 func Init(inMemory bool, path string) error
-
-# Params
-
-* `inMemory` - whether the data of the `SVM Global State` will be in-memory or persisted.
-* `path` 	   - the path under which `SVM Global State` will store its content.
-This is relevant only when `isMemory=false` (otherwise, the `path` value will be ignored).
 ```
 
 ### Creating a Runtime
