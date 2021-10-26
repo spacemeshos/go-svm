@@ -1,16 +1,10 @@
 # go-svm README
 
-The Golang client for `[SVM](https://github.com/spacemeshos/svm)`. Its primary goal is supplying an ergonomic API for `[go-spacemesh](https://github.com/spacemeshos/go-spacemesh)`
+The Golang client for [`SVM`](https://github.com/spacemeshos/svm). Its primary goal is supplying an ergonomic API for [`go-spacemesh`](https://github.com/spacemeshos/go-spacemesh)
+
+<br>
 
 ## Installation
-
-First you'll need to install [Mage](https://magefile.org/) - a Make-like too written in Go.
-
-### Mage Installation
-
-```bash
-go run mage.go
-```
 
 ### Grab your GitHub Personal Access Token
 
@@ -59,9 +53,11 @@ It's also very easy to run the `go-svm` tests, just type:
 go run mage.go test
 ```
 
-# API
+<br>
 
-## Transaction
+## Structs
+
+### Transaction
 
 Each binary (over-the-wire) transaction will always have two parts:
 
@@ -161,10 +157,10 @@ By saying a `Template Toolchain`, we mean the process of:
 - Compiling the Template code and emitting binary Wasm and Metadata files.
   Currently, the only way to generate such Wasm is by writing Rust code using the `[SVM SDK](https://github.com/spacemeshos/svm/tree/master/crates/sdk)` crate.
 
-Here is a link for such an example Template: (execute the `[build.sh](https://github.com/spacemeshos/svm/blob/master/crates/runtime/tests/wasm/calldata/build.sh)` for compiling into Wasm)
+Here is a link for such an example Template: (execute the [`build.sh`](https://github.com/spacemeshos/svm/blob/master/crates/runtime/tests/wasm/calldata/build.sh) for compiling into Wasm)
 [https://github.com/spacemeshos/svm/tree/master/crates/runtime/tests/wasm/calldata](https://github.com/spacemeshos/svm/tree/master/crates/runtime/tests/wasm/calldata)
 
-- Utilizing the `[SVM CLI](https://github.com/spacemeshos/svm/tree/master/crates/cli)` for crafting a binary `Deploy` transaction.
+- Utilizing the [`SVM CLI`](https://github.com/spacemeshos/svm/tree/master/crates/cli) for crafting a binary `Deploy` transaction.
 
 Here is CLI usage for the generation of a binary `Spawn` message:
 
@@ -221,10 +217,10 @@ There has been implemented an npm package for interfacing against that Wasm pack
 
 [https://github.com/spacemeshos/svm-codec-npm](https://github.com/spacemeshos/svm-codec-npm)
 
-This npm package will be consumed by `[smapp](https://github.com/spacemeshos/smapp)` or the `[Process Explorer](https://github.com/spacemeshos/explorer-frontend)`.
-Similarly, new clients could be added in the future (for example, a Golang client to be used by `[smrepl](https://github.com/spacemeshos/smrepl)`)
+This npm package will be consumed by [`smapp`](https://github.com/spacemeshos/smapp) or the [`Process Explorer`](https://github.com/spacemeshos/explorer-frontend).
+Similarly, new clients could be added in the future (for example, a Golang client to be used by [`smrepl`](https://github.com/spacemeshos/smrepl))
 
-## Call Message
+### Call Message
 
 Each `Call Message` contains the following fields:
 
@@ -260,9 +256,11 @@ To turn it into a binary `Call Message` using the CLI execute:
 svm-cli tx --tx-type=call --input=tx.json --output=tx.bin
 ```
 
-# High-level API
+<br>
 
-## Init
+## High-level API
+
+### Init
 
 `Init` must be called at least once before interacting with any other API.
 The function is **idempotent** and won't do anything after the first call.
@@ -278,7 +276,7 @@ func Init(inMemory bool, path string) error
 This is relevant only when `isMemory=false` (otherwise, the `path` value will be ignored).
 ```
 
-## Creating a Runtime
+### Creating a Runtime
 
 Creates a new `SVM Runtime`. You can think of it as opening a connection to `SVM`. Please make sure to call `Init` (see above) first.
 
@@ -288,7 +286,7 @@ Here is the `Create Runtime` API:
 func NewRuntime() (*Runtime, error)
 ```
 
-## Destroying a Runtime
+### Destroying a Runtime
 
 When the usage of a `Runtime` is over, we need to release its resources. You can think of it as closing a connection.
 
@@ -298,7 +296,7 @@ And here is the `Destroy Runtime` API:
 func (rt *Runtime) Destroy()
 ```
 
-## Verifying a Transaction
+### Verifying a Transaction
 
 Performs the `verify` stage as dictated by the [Account Unification](https://github.com/spacemeshos/SMIPS/issues/49) design.
 Since the `verify` flow involves the running Wasm function as done when running a `Call` transaction, the output will also be of type `CallReceipt`.
@@ -309,7 +307,7 @@ This is the relevant API to be used:
 func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, error)
 ```
 
-## Starting a new Layer
+### Starting a new Layer
 
 Signaling `SVM` that we are about to start playing a list of transactions under the input `layer` Layer.
 
@@ -344,9 +342,8 @@ If the `Commit` errored, then the output will be:
 - The `Layer` we have just tried to commit (but have failed)
 - `nil` under the `State` position.
 - The `error` that occurred.
--
 
-## Rewinding State
+### Rewinding State
 
 Rewinds `SVM Global State` to the given L`ayer`. This capability is necessary for self-healing.
 
@@ -359,7 +356,7 @@ func (rt *Runtime) Rewind(layer Layer) (State, error)
 If the rewind succeeds, it returns the `Global-State Root Hash` at that given point. (the `error` returned will be assigned with `nil`)
 Otherwise, a `nil` will be placed under the `State` position, and the 2nd tuple element will contain the `error` that occurred.
 
-## Retrieving an Account
+### Retrieving an Account
 
 Given an `Account Address` - retrieves its most basic information encapsulated within an `Account` struct.
 
@@ -391,7 +388,7 @@ func (rt *Runtime) IncreaseBalance(addr Address, amount Amount)
 
 **TODO: What should be the behavior of `go-svm` when there is no account with the given `Address`?**
 
-## Deploying a Template
+### Deploying a Template
 
 Deploying a Template exposes two dedicated APIs: `ValidateDeploy` and `Deploy`.
 
@@ -423,7 +420,7 @@ type DeployReceipt struct {
 }
 ```
 
-## Spawning an Account
+### Spawning an Account
 
 Performs the spawning of a new `Account` out of the existing `Template`.
 Similarly to `Deploy` - spawning a new `Account` exposes two dedicated APIs: `ValidateSpawn` and `Spawn`.
@@ -458,7 +455,7 @@ type SpawnReceipt struct {
 }
 ```
 
-## Calling an Account
+### Calling an Account
 
 ### Validate Call
 
