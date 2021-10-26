@@ -274,6 +274,7 @@ func Init(inMemory bool, path string) error
 
 Creates a new `SVM Runtime`. You can think of it as opening a connection to `SVM`. Please make sure to call `Init` (see above) first.
 
+<br>
 Here is the `Create Runtime` API:
 
 ```go
@@ -284,6 +285,7 @@ func NewRuntime() (*Runtime, error)
 
 When the usage of a `Runtime` is over, we need to release its resources. You can think of it as closing a connection.
 
+<br>
 And here is the `Destroy Runtime` API:
 
 ```go
@@ -295,6 +297,7 @@ func (rt *Runtime) Destroy()
 Performs the `verify` stage as dictated by the [Account Unification](https://github.com/spacemeshos/SMIPS/issues/49) design.
 Since the `verify` flow involves the running Wasm function as done when running a `Call` transaction, the output will also be of type `CallReceipt`.
 
+<br>
 This is the relevant API to be used:
 
 ```go
@@ -304,10 +307,10 @@ func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) (*CallReceipt
 ### Starting a new Layer
 
 Signaling `SVM` that we are about to start playing a list of transactions under the input `layer` Layer.
-
-The value of the L`ayer` is expected to equal the last known `committed/rewinded` Layer plus one.
+The value of the `Layer` is expected to equal the last known `committed/rewinded` Layer plus one.
 Any other `layer` given as input will result in an `error`.
 
+<br>
 For starting a new `Layer`, use the following:
 
 ```go
@@ -319,6 +322,7 @@ func (rt *Runtime) Open(layer Layer) error
 Commits `SVM` dirty changes. It also signals the termination of the current Layer.
 In other words, after finishing executing the layer transactions, we should call a `Commit`.
 
+<br>
 The matching API:
 
 ```go
@@ -341,6 +345,7 @@ If the `Commit` errored, then the output will be:
 
 Rewinds `SVM Global State` to the given L`ayer`. This capability is necessary for self-healing.
 
+<br>
 Here is the API for rewind:
 
 ```go
@@ -354,12 +359,14 @@ Otherwise, a `nil` will be placed under the `State` position, and the 2nd tuple 
 
 Given an `Account Address` - retrieves its most basic information encapsulated within an `Account` struct.
 
+<br>
 Here is the API to be used for retrieving an account:
 
 ```go
 func (rt *Runtime) GetAccount(addr Address) (Account, error)
 ```
 
+<br>
 And this is the definition of an `Account` at `go-svm`:
 
 ```go
@@ -374,6 +381,7 @@ type Account struct {
 
 Increases an account's balance. The motivation for that API was supporting `Rewards`
 
+<br>
 The API for increasing an account's balance:
 
 ```go
@@ -390,6 +398,9 @@ Deploying a Template exposes two dedicated APIs: `ValidateDeploy` and `Deploy`.
 
 Syntactically validates the `Deploy Message` given in a binary form and returns whether it's valid or not.
 
+<br>
+The API for validation:
+
 ```go
 func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error)
 ```
@@ -398,9 +409,14 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error)
 
 Performs the actual deployment of a `Template` and returns a `DeployReceipt`.
 
+<br>
+The `Deploy` API:
+
 ```go
 func (rt *Runtime) Deploy(env *Envelope, msg []byte, ctx *Context) (*DeployReceipt, error)
 ```
+
+<br>
 
 That is the `DeployReceipt` definition:
 
@@ -423,6 +439,9 @@ Similarly to `Deploy` - spawning a new `Account` exposes two dedicated APIs: `Va
 
 Syntactically validates the `Spawn Message` given in a binary form and returns whether it's valid or not.
 
+<br>
+The validation API:
+
 ```go
 func (rt *Runtime) ValidateSpawn(msg []byte) (bool, error)
 ```
@@ -431,9 +450,14 @@ func (rt *Runtime) ValidateSpawn(msg []byte) (bool, error)
 
 Performs the spawning of a new `Account` out of the existing `Template` and returns a `SpawnReceipt`.
 
+<br>
+The `Spawn` API:
+
 ```go
 func (rt *Runtime) Spawn(env *Envelope, msg []byte, ctx *Context) (*SpawnReceipt, error)
 ```
+
+<br>
 
 Here is the `SpawnReceipt` definition:
 
@@ -455,6 +479,9 @@ type SpawnReceipt struct {
 
 Syntactically validates the `Call Message` given in a binary form and returns whether it's valid or not.
 
+<br>
+The validation API:
+
 ```go
 func (rt *Runtime) ValidateCall(msg []byte) (bool, error)
 ```
@@ -463,9 +490,14 @@ func (rt *Runtime) ValidateCall(msg []byte) (bool, error)
 
 Performs the actual calling an `Account` and returns a `CallReceipt`.
 
+<br>
+The `Call` API:
+
 ```go
 func (rt *Runtime) Call(env *Envelope, msg []byte, ctx *Context) (*CallReceipt, error)
 ```
+
+<br>
 
 Here is the `CallReceipt` definition:
 
