@@ -367,6 +367,7 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error)
 ```
 
 <br>
+
 And this is the definition of an `Account` at `go-svm`:
 
 ```go
@@ -388,7 +389,7 @@ The API for increasing an account's balance:
 func (rt *Runtime) IncreaseBalance(addr Address, amount Amount)
 ```
 
-**TODO: What should be the behavior of `go-svm` when there is no account with the given `Address`?**
+TODO: What should be the behavior of `go-svm` when there is no account with the given `Address`?
 
 ### Deploying a Template
 
@@ -410,6 +411,7 @@ func (rt *Runtime) ValidateDeploy(msg []byte) (bool, error)
 Performs the actual deployment of a `Template` and returns a `DeployReceipt`.
 
 <br>
+
 The `Deploy` API:
 
 ```go
@@ -451,6 +453,7 @@ func (rt *Runtime) ValidateSpawn(msg []byte) (bool, error)
 Performs the spawning of a new `Account` out of the existing `Template` and returns a `SpawnReceipt`.
 
 <br>
+
 The `Spawn` API:
 
 ```go
@@ -491,6 +494,7 @@ func (rt *Runtime) ValidateCall(msg []byte) (bool, error)
 Performs the actual calling an `Account` and returns a `CallReceipt`.
 
 <br>
+
 The `Call` API:
 
 ```go
@@ -544,9 +548,8 @@ func ReceiptsCount()
 
 ### Errors Count
 
-Returns the number of internal errors returned by `SVM`
-First, it's important to stress what we mean by saying an `Error`
-
+Returns the number of internal errors returned by `SVM`.
+First, it's important to stress what we mean by saying an `Error`.
 When a transaction has failed due to panic or running out-of-gas - SVM needs to return a valid Receipt setting `Success` to `false`
 An `error` should be returned in the case that `SVM` itself panicked - this is undefined behavior.
 
