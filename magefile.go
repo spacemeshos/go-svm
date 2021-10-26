@@ -87,6 +87,8 @@ func environCGo(here string) []string {
 	if goos == "darwin" {
 		env = append(env, fmt.Sprintf("CGO_LDFLAGS=%s/libsvm.a -lm -ldl -framework Security -framework Foundation", artifactsDir))
 	} else if goos == "windows" {
+		path := os.Getenv("PATH")
+		env = append(env, fmt.Sprintf("PATH=%s;%s", artifactsDir, path))
 		env = append(env, fmt.Sprintf("CGO_LDFLAGS=-L%ssvm.dll", artifactsDir))
 	} else {
 		env = append(env, fmt.Sprintf("CGO_LDFLAGS=%s/libsvm.a -lm -ldl -Wl,-rpath,%s", artifactsDir, artifactsDir))
