@@ -108,15 +108,15 @@ func TestValidateEmptyDeploy(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestValidateDeployInvalid(t *testing.T) {
-	rt := runtimeSetup(t)
-	defer rt.Destroy()
-
-	msg := []byte{0, 0, 0, 0}
-	valid, err := rt.ValidateDeploy(msg)
-	assert.False(t, valid)
-	assert.NotNil(t, err)
-}
+//func TestValidateDeployInvalid(t *testing.T) {
+//	rt := runtimeSetup(t)
+//	defer rt.Destroy()
+//
+//	msg := []byte{0, 0, 0, 0}
+//	valid, err := rt.ValidateDeploy(msg)
+//	assert.False(t, valid)
+//	assert.NotNil(t, err)
+//}
 
 //func TestValidateDeployValid(t *testing.T) {
 //	rt := runtimeSetup(t)
