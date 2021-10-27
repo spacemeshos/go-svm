@@ -50,12 +50,18 @@ func Build() error {
 	return cmd.Run()
 }
 
-func Install() error {
+func Download() error {
 	here, _ := os.Getwd()
 	dir := filepath.Join(here, "svm", "artifacts")
+	DownloadArtifactsToDir(dir)
+	return nil
+}
 
+func Install() error {
 	mg.Deps(Build)
-	mg.Deps(mg.F(DownloadArtifactsToDir, dir))
+	mg.Deps(Download)
+
+	here, _ := os.Getwd()
 
 	cmd := exec.Command("go", "install", "./...")
 	cmd.Env = environCGo(here)
