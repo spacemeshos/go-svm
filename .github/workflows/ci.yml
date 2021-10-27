@@ -47,6 +47,8 @@ jobs:
           set -e
           cd svm/inputs
           ./generate_txs.sh
+          ls call
+          ls spawn
       - run: go run mage.go test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
