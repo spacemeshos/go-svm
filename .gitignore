@@ -1,6 +1,5 @@
 */artifacts/*
 !*/artifacts/.gitkeep
-svm.h
 .DS_Store
 
 # Auto-generated tests inputs using the `svm-cli` command-line
