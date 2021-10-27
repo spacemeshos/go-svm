@@ -73,6 +73,7 @@ func Test() error {
 	mg.Deps(Install)
 
 	here, _ := os.Getwd()
+	fmt.Printf("currrent dir is %s", here)
 
 	cmd := exec.Command("go", "test", "-p", "1", ".")
 	cmd.Dir = filepath.Join(here, "svm")
