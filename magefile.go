@@ -78,7 +78,7 @@ func Test() error {
 	cmd := exec.Command("go", "test", "-p", "1", ".")
 	cmd.Dir = filepath.Join(here, "svm")
 	cmd.Env = environCGo(here)
-	cmd.Env = append(cmd.Env, "RUST_BACKTRACE=1")
+	cmd.Env = append(cmd.Env, "RUST_BACKTRACE=full")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
