@@ -2,7 +2,7 @@ all: install build
 .PHONY: all
 
 ARTIFACTS_DIR := $(realpath svm)/artifacts
-SVM_VERSION := 0.0.11
+SVM_VERSION := 0.0.13
 
 export GOOS
 export GOARCH

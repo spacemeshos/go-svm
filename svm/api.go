@@ -321,6 +321,7 @@ func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
 		err = errors.New(string(C.GoBytes(ptr, size)))
 	}
 
+	C.svm_free_result(res)
 	return receipt, err
 }
 
