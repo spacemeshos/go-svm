@@ -2,7 +2,6 @@ package svm
 
 import (
 	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -120,7 +119,6 @@ func TestValidateDeployInvalid(t *testing.T) {
 }
 
 func TestValidateDeployValid(t *testing.T) {
-	here, _ := os.Getwd()
 	rt := runtimeSetup(t)
 	defer rt.Destroy()
 
