@@ -60,5 +60,5 @@ install: build download
 
 test: build install
 	cd svm/inputs && ./generate_txs.sh
-	cd svm && RUST_BACKTRACE=1 go test -v -p 1 .
+	cd svm && RUST_BACKTRACE=full go test -v -p 1 .
 .PHONY: test
