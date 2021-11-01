@@ -3,7 +3,7 @@ all: install build
 
 
 ARTIFACTS_DIR := $(realpath svm)/artifacts
-SVM_VERSION := 0.0.9
+SVM_VERSION := 0.0.10
 
 export GOOS
 export CGO_CFLAGS := -I${ARTIFACTS_DIR}
