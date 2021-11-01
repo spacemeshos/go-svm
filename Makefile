@@ -24,7 +24,7 @@ endif
 
 svm/artifacts/svm-$(PLATFORM).zip:
 	mkdir -p svm/artifacts/
-	curl -L https://github.com/spacemeshos/svm/releases/download/v$(SVM_VERSION)/svm-$(PLATFORM)-v$(SVM_VERSION).zip -o $(ARTIFACTS_DIR)/svm-$(PLATFORM).zip
+	curl -L https://github.com/spacemeshos/svm/releases/download/v$(SVM_VERSION)/svm-$(PLATFORM)-v$(SVM_VERSION).zip -o svm/artifacts/svm-$(PLATFORM).zip
 	unzip svm/artifacts/svm-$(PLATFORM).zip -d svm/artifacts/
 
 download: svm/artifacts/svm-$(PLATFORM).zip
