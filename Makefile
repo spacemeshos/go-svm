@@ -28,6 +28,7 @@ svm/artifacts/svm-$(PLATFORM).zip:
 	curl -L https://github.com/spacemeshos/svm/releases/download/v$(SVM_VERSION)/svm-$(PLATFORM)-v$(SVM_VERSION).zip -o svm/artifacts/svm-$(PLATFORM).zip
 	unzip svm/artifacts/svm-$(PLATFORM).zip -d svm/artifacts/
 	chmod +x svm/artifacts/$(SVM_CLI)
+	ls svm/artifacts
 
 clean:
 	rm -rf svm/artifacts/
