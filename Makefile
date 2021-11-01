@@ -24,6 +24,7 @@ else
 endif
 
 svm/artifacts/svm-$(PLATFORM).zip:
+	echo "Building svm-$(PLATFORM)..."
 	mkdir -p svm/artifacts/
 	curl -L https://github.com/spacemeshos/svm/releases/download/v$(SVM_VERSION)/svm-$(PLATFORM)-v$(SVM_VERSION).zip -o svm/artifacts/svm-$(PLATFORM).zip
 	unzip svm/artifacts/svm-$(PLATFORM).zip -d svm/artifacts/
