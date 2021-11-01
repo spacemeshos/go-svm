@@ -26,17 +26,7 @@ jobs:
           go-version: "1.15"
       - name: Checkout sources
         uses: actions/checkout@v2
-      - run: make download
-      - if: matrix.os == 'windows-latest'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-toolchain mingw-w64-x86_64-tools-git
-      - if: matrix.os == 'windows-latest'
-        shell: msys2 {0}
-        run: |
-          cd svm/artifacts
-          gendef.exe svm.dll
-          dlltool.exe -d svm.def -D svm.dll -l libsvm.a
-      - run: make test
+      - run: |
+          set -e
+          make download
+          make test
