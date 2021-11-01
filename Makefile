@@ -30,6 +30,10 @@ svm/artifacts/svm-$(PLATFORM).zip:
 	unzip svm/artifacts/svm-$(PLATFORM).zip -d svm/artifacts/
 	chmod +x svm/artifacts/$(SVM_CLI)
 
+clean:
+	rm -rf svm/artifacts/
+.PHONY: clean
+
 download: svm/artifacts/svm-$(PLATFORM).zip
 .PHONY: download
 
