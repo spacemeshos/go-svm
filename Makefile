@@ -5,7 +5,19 @@ ARTIFACTS_DIR := $(realpath svm)/artifacts
 SVM_VERSION := 0.0.11
 
 export GOOS
+export GOARCH
+export GOARM
 export CGO_CFLAGS = -I${ARTIFACTS_DIR}
+
+ifeq ($(OS),Windows_NT)
+	HOST_OS := windows
+else
+	HOST_OS := $(shell uname | tr [A-Z] [a-z])
+endif
+
+ifeq ($(GOOS),)
+	GOOS := $(HOST_OS)
+endif
 
 ifeq ($(GOOS),windows)
 	PLATFORM := windows
