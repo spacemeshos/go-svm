@@ -27,14 +27,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
       - run: |
-          go run mage.go install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Generate Binary Transactions
-        run: |
           set -e
-          cd svm/inputs
-          ./generate_txs.sh
-      - run: go run mage.go test
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          make download
+          make test

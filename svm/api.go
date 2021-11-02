@@ -305,9 +305,6 @@ func toSvmParams(env *Envelope, msg []byte, ctx *Context) *svmParams {
 }
 
 func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
-	defer C.free(unsafe.Pointer(res.receipt))
-	defer C.free(unsafe.Pointer(res.error))
-
 	size := C.int(res.buf_size)
 
 	receipt := ([]byte)(nil)
@@ -321,6 +318,7 @@ func copySvmResult(res C.struct_svm_result_t) ([]byte, error) {
 		err = errors.New(string(C.GoBytes(ptr, size)))
 	}
 
+	C.svm_free_result(res)
 	return receipt, err
 }
 
