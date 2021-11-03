@@ -236,7 +236,13 @@ func (rt *Runtime) Open(layer Layer) error {
 //
 // In case there is no such layer to rewind to - returns an `error`.
 func (rt *Runtime) Rewind(layer Layer) (State, error) {
-	panic("TODO")
+	res := C.svm_rewind(rt.raw, C.uint64_t(layer))
+	_, err := copySvmResult(res)
+	if err != nil {
+		return State{}, err
+	}
+	// FIXME
+	return State{}, nil
 }
 
 // Commits the dirty changes of `SVM` and signals the termination of the current layer.
@@ -252,7 +258,27 @@ func (rt *Runtime) Commit() (Layer, State, error) {
 //
 // Returns a `(nil, error)` in case the requested `Account` doesn't exist.
 func (rt *Runtime) GetAccount(addr Address) (Account, error) {
-	panic("TODO")
+	var balance C.uint64_t
+	var counterUpperBits C.uint64_t
+	var counterLowerBits C.uint64_t
+	templateAddr := (*C.uchar)(unsafe.Pointer(&TemplateAddr{}))
+	addrRaw := (*C.uchar)(unsafe.Pointer(&addr[0]))
+
+	res := C.svm_get_account(rt.raw, addrRaw, &balance, &counterUpperBits, &counterLowerBits, templateAddr)
+
+	_, err := copySvmResult(res)
+	if err != nil {
+		return Account{}, err
+	}
+
+	return Account{
+		Addr:    addr,
+		Balance: uint64(balance),
+		Counter: TxNonce{
+			Upper: uint64(counterUpperBits),
+			Lower: uint64(counterLowerBits),
+		},
+	}, nil
 }
 
 func (rt *Runtime) CreateAccount(account Account) error {
