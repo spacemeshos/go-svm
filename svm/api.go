@@ -5,6 +5,7 @@ package svm
 import "C"
 import (
 	"errors"
+	"sync"
 	"unsafe"
 )
 
@@ -15,8 +16,8 @@ type svmParams struct {
 	ctxPtr *C.uchar
 }
 
-// TODO: we might want to guard calling `Init` with a Mutex.
 var initialized = false
+var initializedGuard = sync.Mutex{}
 
 // `Init` must be called at least once before interacting with any other API of SVM.
 // Each future call to `NewRuntime` (see later) assumes the settings given the `Init` call.
@@ -34,6 +35,8 @@ var initialized = false
 //
 // Returns an error in case the initialization has failed.
 func Init(inMemory bool, path string) error {
+	initializedGuard.Lock()
+	defer initializedGuard.Unlock()
 	if initialized {
 		return nil
 	}
@@ -273,7 +276,7 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 
 	return Account{
 		Addr:    addr,
-		Balance: uint64(balance),
+		Balance: Amount(balance),
 		Counter: TxNonce{
 			Upper: uint64(counterUpperBits),
 			Lower: uint64(counterLowerBits),
@@ -282,7 +285,16 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 }
 
 func (rt *Runtime) CreateAccount(account Account) error {
-	panic("TODO")
+	res := C.svm_create_account(
+		rt.raw,
+		(*C.uchar)(unsafe.Pointer(&account.Addr[0])),
+		C.uint64_t(account.Balance),
+		C.uint64_t(account.Counter.Upper),
+		C.uint64_t(account.Counter.Lower),
+	)
+
+	_, err := copySvmResult(res)
+	return err
 }
 
 // Increases the balance of an Account (i.e printing coins)
@@ -291,8 +303,15 @@ func (rt *Runtime) CreateAccount(account Account) error {
 //
 // * `addr`   - The `Account Address` we want to increase its balance.
 // * `amount` - The `Amount` by which we are going to increase the account's balance.
-func (rt *Runtime) IncreaseBalance(addr Address, amount Amount) {
-	panic("TODO")
+func (rt *Runtime) IncreaseBalance(addr Address, amount Amount) error {
+	res := C.svm_increase_balance(
+		rt.raw,
+		(*C.uchar)(unsafe.Pointer(&addr[0])),
+		C.uint64_t(amount),
+	)
+
+	_, err := copySvmResult(res)
+	return err
 }
 
 func NewEnvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) *Envelope {

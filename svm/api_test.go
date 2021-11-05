@@ -234,6 +234,27 @@ func TestCallValidateValid(t *testing.T) {
 	assert.True(t, isValid)
 }
 
+func TestAccountBalance(t *testing.T) {
+	rt := runtimeSetup(t)
+	defer rt.Destroy()
+
+	err := rt.CreateAccount(Account{Addr: Address{}, Balance: Amount(10), Counter: TxNonce{Upper: 0, Lower: 1337}})
+	assert.Nil(t, err)
+
+	account, err := rt.GetAccount(Address{})
+	assert.Nil(t, err)
+	assert.Equal(t, account.Addr, Address{})
+	assert.Equal(t, account.Balance, Amount(10))
+	assert.Equal(t, account.Counter, TxNonce{Upper: 0, Lower: 1337})
+
+	err = rt.IncreaseBalance(Address{}, Amount(10))
+	assert.Nil(t, err)
+
+	account, err = rt.GetAccount(Address{})
+	assert.Nil(t, err)
+	assert.Equal(t, account.Balance, Amount(20))
+}
+
 // TODO: fix the gas pricing first under SVM
 // func TestCallOutOfGas(t *testing.T) {
 // 	rt := runtimeSetup(t)
