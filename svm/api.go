@@ -254,7 +254,16 @@ func (rt *Runtime) Rewind(layer Layer) (State, error) {
 //
 // In case commits fails (for example, persisting to disk failure) - returns `(0, error)`
 func (rt *Runtime) Commit() (Layer, State, error) {
-	panic("TODO")
+	res := C.svm_commit(rt.raw)
+
+	_, err := copySvmResult(res)
+	if err != nil {
+		return Layer(0), State{}, err
+	}
+
+	hash := C.svm_get_current_layer(rt.raw)
+
+	return Layer(0), hash, nil
 }
 
 // Given an `Account Address` - retrieves its most basic information encapuslated within an `Account` struct.
