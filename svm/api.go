@@ -244,8 +244,29 @@ func (rt *Runtime) Rewind(layer Layer) (State, error) {
 	if err != nil {
 		return State{}, err
 	}
-	// FIXME
-	return State{}, nil
+	state, err := rt.StateHash()
+	if err != nil {
+		return State{}, err
+	}
+	return state, nil
+}
+
+func (rt *Runtime) layerInfo() (uint64, State, error) {
+	state := State{}
+	statePtr := (*C.uchar)(unsafe.Pointer(&state))
+	layer := uint64(0)
+	layerPtr := (*C.uint64_t)(unsafe.Pointer(&layer))
+	res := C.svm_layer_info(rt.raw, statePtr, layerPtr)
+	_, err := copySvmResult(res)
+	if err != nil {
+		return 0, State{}, err
+	}
+	return layer, state, nil
+}
+
+func (rt *Runtime) StateHash() (State, error) {
+	_, state, err := rt.layerInfo()
+	return state, err
 }
 
 // Commits the dirty changes of `SVM` and signals the termination of the current layer.
@@ -261,9 +282,8 @@ func (rt *Runtime) Commit() (Layer, State, error) {
 		return Layer(0), State{}, err
 	}
 
-	hash := C.svm_get_current_layer(rt.raw)
-
-	return Layer(0), hash, nil
+	layer, hash, err := rt.layerInfo()
+	return Layer(layer), hash, nil
 }
 
 // Given an `Account Address` - retrieves its most basic information encapuslated within an `Account` struct.
