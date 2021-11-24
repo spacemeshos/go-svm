@@ -5,6 +5,7 @@ package svm
 import "C"
 import (
 	"errors"
+	"log"
 	"sync"
 	"unsafe"
 )
@@ -232,7 +233,13 @@ func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) (*CallReceipt
 //
 // * Calling `Open` twice in a row will result in an `error` returned.
 func (rt *Runtime) Open(layer Layer) error {
-	panic("TODO")
+	res := C.svm_uncommitted_changes(rt.raw)
+	_, err := copySvmResult(res)
+	if err != nil {
+		return err
+	}
+	log.Print("Ready to play SVM transactions in a new layer.")
+	return nil
 }
 
 // Rewinds the `SVM Global State` back to the input `layer`.
