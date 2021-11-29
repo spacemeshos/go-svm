@@ -284,7 +284,7 @@ func TestSpawnNonexistentCtor(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, receipt.Success)
 	assert.NotNil(t, receipt.Error)
-	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotFound))
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotAllowed))
 }
 
 func TestSpawnCtorExistsButInvalid(t *testing.T) {
@@ -297,8 +297,7 @@ func TestSpawnCtorExistsButInvalid(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, receipt.Success)
 	assert.NotNil(t, receipt.Error)
-	// TODO: Should this be `FuncNotAllowed`? Or is `FuncNotFound` okay?
-	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotFound))
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotAllowed))
 }
 
 func TestCallNonexistentFunc(t *testing.T) {
