@@ -416,7 +416,7 @@ func runAction(env *Envelope, msg []byte, ctx *Context, action svmAction) (inter
 	bytes, err := copySvmResult(res)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return decodeReceipt(bytes)

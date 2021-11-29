@@ -274,6 +274,17 @@ func TestAccountBalance(t *testing.T) {
 // 	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(OOG))
 // }
 
+func TestCallBadCtor(t *testing.T) {
+	rt := runtimeSetup(t)
+	defer rt.Destroy()
+
+	deploy(t, rt, "inputs/template_example.svm", NewTestParams())
+	receipt, _ := spawn(t, rt, "inputs/spawn/initialize-no-ctor.json.bin", NewTestParams())
+	assert.False(t, receipt.Success)
+	assert.NotNil(t, receipt.Error)
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotFound))
+}
+
 func TestCallSuccess(t *testing.T) {
 	rt := runtimeSetup(t)
 	defer rt.Destroy()
