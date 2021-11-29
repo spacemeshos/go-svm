@@ -274,15 +274,59 @@ func TestAccountBalance(t *testing.T) {
 // 	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(OOG))
 // }
 
-func TestCallBadCtor(t *testing.T) {
+func TestSpawnNonexistentCtor(t *testing.T) {
 	rt := runtimeSetup(t)
 	defer rt.Destroy()
 
 	deploy(t, rt, "inputs/template_example.svm", NewTestParams())
-	receipt, _ := spawn(t, rt, "inputs/spawn/initialize-no-ctor.json.bin", NewTestParams())
+
+	receipt, err := spawn(t, rt, "inputs/spawn/nonexistent_ctor.json.bin", NewTestParams())
+	assert.Nil(t, err)
 	assert.False(t, receipt.Success)
 	assert.NotNil(t, receipt.Error)
 	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotFound))
+}
+
+func TestSpawnCtorExistsButInvalid(t *testing.T) {
+	rt := runtimeSetup(t)
+	defer rt.Destroy()
+
+	deploy(t, rt, "inputs/template_example.svm", NewTestParams())
+
+	receipt, err := spawn(t, rt, "inputs/spawn/ctor_exists_but_invalid.json.bin", NewTestParams())
+	assert.Nil(t, err)
+	assert.False(t, receipt.Success)
+	assert.NotNil(t, receipt.Error)
+	// TODO: Should this be `FuncNotAllowed`? Or is `FuncNotFound` okay?
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotFound))
+}
+
+func TestCallNonexistentFunc(t *testing.T) {
+	rt := runtimeSetup(t)
+	defer rt.Destroy()
+
+	deploy(t, rt, "inputs/template_example.svm", NewTestParams())
+	spawn(t, rt, "inputs/spawn/initialize.json.bin", NewTestParams())
+
+	receipt, err := call(t, rt, "inputs/call/nonexistent_func.json.bin", NewTestParams())
+	assert.Nil(t, err)
+	assert.False(t, receipt.Success)
+	assert.NotNil(t, receipt.Error)
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotFound))
+}
+
+func TestCallCtor(t *testing.T) {
+	rt := runtimeSetup(t)
+	defer rt.Destroy()
+
+	deploy(t, rt, "inputs/template_example.svm", NewTestParams())
+	spawn(t, rt, "inputs/spawn/initialize.json.bin", NewTestParams())
+
+	receipt, err := call(t, rt, "inputs/call/initialize.json.bin", NewTestParams())
+	assert.Nil(t, err)
+	assert.False(t, receipt.Success)
+	assert.NotNil(t, receipt.Error)
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotAllowed))
 }
 
 func TestCallSuccess(t *testing.T) {
