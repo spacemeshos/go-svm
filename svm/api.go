@@ -5,6 +5,8 @@ package svm
 import "C"
 import (
 	"errors"
+	"log"
+	"sync"
 	"unsafe"
 )
 
@@ -15,8 +17,8 @@ type svmParams struct {
 	ctxPtr *C.uchar
 }
 
-// TODO: we might want to guard calling `Init` with a Mutex.
 var initialized = false
+var initializedGuard = sync.Mutex{}
 
 // `Init` must be called at least once before interacting with any other API of SVM.
 // Each future call to `NewRuntime` (see later) assumes the settings given the `Init` call.
@@ -34,6 +36,8 @@ var initialized = false
 //
 // Returns an error in case the initialization has failed.
 func Init(inMemory bool, path string) error {
+	initializedGuard.Lock()
+	defer initializedGuard.Unlock()
 	if initialized {
 		return nil
 	}
@@ -229,14 +233,47 @@ func (rt *Runtime) Verify(env *Envelope, msg []byte, ctx *Context) (*CallReceipt
 //
 // * Calling `Open` twice in a row will result in an `error` returned.
 func (rt *Runtime) Open(layer Layer) error {
-	panic("TODO")
+	res := C.svm_uncommitted_changes(rt.raw)
+	_, err := copySvmResult(res)
+	if err != nil {
+		return err
+	}
+	log.Print("Ready to play SVM transactions in a new layer.")
+	return nil
 }
 
 // Rewinds the `SVM Global State` back to the input `layer`.
 //
 // In case there is no such layer to rewind to - returns an `error`.
 func (rt *Runtime) Rewind(layer Layer) (State, error) {
-	panic("TODO")
+	res := C.svm_rewind(rt.raw, C.uint64_t(layer))
+	_, err := copySvmResult(res)
+	if err != nil {
+		return State{}, err
+	}
+	state, err := rt.StateHash()
+	if err != nil {
+		return State{}, err
+	}
+	return state, nil
+}
+
+func (rt *Runtime) layerInfo() (uint64, State, error) {
+	state := State{}
+	statePtr := (*C.uchar)(unsafe.Pointer(&state))
+	layer := uint64(0)
+	layerPtr := (*C.uint64_t)(unsafe.Pointer(&layer))
+	res := C.svm_layer_info(rt.raw, statePtr, layerPtr)
+	_, err := copySvmResult(res)
+	if err != nil {
+		return 0, State{}, err
+	}
+	return layer, state, nil
+}
+
+func (rt *Runtime) StateHash() (State, error) {
+	_, state, err := rt.layerInfo()
+	return state, err
 }
 
 // Commits the dirty changes of `SVM` and signals the termination of the current layer.
@@ -245,18 +282,55 @@ func (rt *Runtime) Rewind(layer Layer) (State, error) {
 //
 // In case commits fails (for example, persisting to disk failure) - returns `(0, error)`
 func (rt *Runtime) Commit() (Layer, State, error) {
-	panic("TODO")
+	res := C.svm_commit(rt.raw)
+
+	_, err := copySvmResult(res)
+	if err != nil {
+		return Layer(0), State{}, err
+	}
+
+	layer, hash, err := rt.layerInfo()
+	return Layer(layer), hash, nil
 }
 
 // Given an `Account Address` - retrieves its most basic information encapuslated within an `Account` struct.
 //
 // Returns a `(nil, error)` in case the requested `Account` doesn't exist.
 func (rt *Runtime) GetAccount(addr Address) (Account, error) {
-	panic("TODO")
+	var balance C.uint64_t
+	var counterUpperBits C.uint64_t
+	var counterLowerBits C.uint64_t
+	templateAddr := (*C.uchar)(unsafe.Pointer(&TemplateAddr{}))
+	addrRaw := (*C.uchar)(unsafe.Pointer(&addr[0]))
+
+	res := C.svm_get_account(rt.raw, addrRaw, &balance, &counterUpperBits, &counterLowerBits, templateAddr)
+
+	_, err := copySvmResult(res)
+	if err != nil {
+		return Account{}, err
+	}
+
+	return Account{
+		Addr:    addr,
+		Balance: Amount(balance),
+		Counter: TxNonce{
+			Upper: uint64(counterUpperBits),
+			Lower: uint64(counterLowerBits),
+		},
+	}, nil
 }
 
 func (rt *Runtime) CreateAccount(account Account) error {
-	panic("TODO")
+	res := C.svm_create_account(
+		rt.raw,
+		(*C.uchar)(unsafe.Pointer(&account.Addr[0])),
+		C.uint64_t(account.Balance),
+		C.uint64_t(account.Counter.Upper),
+		C.uint64_t(account.Counter.Lower),
+	)
+
+	_, err := copySvmResult(res)
+	return err
 }
 
 // Increases the balance of an Account (i.e printing coins)
@@ -265,8 +339,15 @@ func (rt *Runtime) CreateAccount(account Account) error {
 //
 // * `addr`   - The `Account Address` we want to increase its balance.
 // * `amount` - The `Amount` by which we are going to increase the account's balance.
-func (rt *Runtime) IncreaseBalance(addr Address, amount Amount) {
-	panic("TODO")
+func (rt *Runtime) IncreaseBalance(addr Address, amount Amount) error {
+	res := C.svm_increase_balance(
+		rt.raw,
+		(*C.uchar)(unsafe.Pointer(&addr[0])),
+		C.uint64_t(amount),
+	)
+
+	_, err := copySvmResult(res)
+	return err
 }
 
 func NewEnvelope(principal Address, amount Amount, txNonce TxNonce, gasLimit Gas, gasFee GasFee) *Envelope {
