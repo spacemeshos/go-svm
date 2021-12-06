@@ -130,16 +130,18 @@ func decodeSpawnReceipt(bytes []byte) (*SpawnReceipt, error) {
 	accountAddr, bytes := decodeAddress(bytes)
 	initState, bytes := decodeState(bytes)
 	gas, bytes := decodeGas(bytes)
+	touchedAccounts, bytes := decodeTouchedAccounts(bytes)
 	returndata, bytes := decodeReturnData(bytes)
 	logs, _ := decodeLogs(bytes)
 
 	receipt := &SpawnReceipt{
-		Success:     true,
-		AccountAddr: accountAddr,
-		InitState:   initState,
-		ReturnData:  returndata,
-		GasUsed:     gas,
-		Logs:        logs,
+		Success:         true,
+		AccountAddr:     accountAddr,
+		InitState:       initState,
+		ReturnData:      returndata,
+		GasUsed:         gas,
+		TouchedAccounts: touchedAccounts,
+		Logs:            logs,
 	}
 	return receipt, nil
 }
@@ -148,16 +150,30 @@ func decodeCallReceipt(bytes []byte) (*CallReceipt, error) {
 	newState, bytes := decodeState(bytes)
 	returndata, bytes := decodeReturnData(bytes)
 	gas, bytes := decodeGas(bytes)
+	touchedAccounts, bytes := decodeTouchedAccounts(bytes)
 	logs, _ := decodeLogs(bytes)
 
 	receipt := &CallReceipt{
-		Success:    true,
-		NewState:   newState,
-		ReturnData: returndata,
-		GasUsed:    gas,
-		Logs:       logs,
+		Success:         true,
+		NewState:        newState,
+		ReturnData:      returndata,
+		GasUsed:         gas,
+		TouchedAccounts: touchedAccounts,
+		Logs:            logs,
 	}
 	return receipt, nil
+}
+
+func decodeTouchedAccounts(bytes []byte) ([]Address, []byte) {
+	accounts := []Address{}
+	len := int(binary.BigEndian.Uint16(bytes))
+	bytes = bytes[2:]
+	for i := 0; i < len; i++ {
+		addr, newBytes := decodeAddress(bytes)
+		bytes = newBytes
+		accounts = append(accounts, addr)
+	}
+	return accounts, bytes
 }
 
 func decodeErrorCode(bytes []byte) (RuntimeErrorKind, []byte) {
