@@ -129,9 +129,9 @@ func decodeDeployReceipt(bytes []byte) (*DeployReceipt, error) {
 func decodeSpawnReceipt(bytes []byte) (*SpawnReceipt, error) {
 	accountAddr, bytes := decodeAddress(bytes)
 	initState, bytes := decodeState(bytes)
+	returndata, bytes := decodeReturnData(bytes)
 	gas, bytes := decodeGas(bytes)
 	touchedAccounts, bytes := decodeTouchedAccounts(bytes)
-	returndata, bytes := decodeReturnData(bytes)
 	logs, _ := decodeLogs(bytes)
 
 	receipt := &SpawnReceipt{
