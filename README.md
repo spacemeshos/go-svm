@@ -221,12 +221,12 @@ svm-cli tx --tx-type=call --input=tx.json --output=tx.bin
 
 ### Init
 
-`Init` must be called at least once before interacting with any other API.
-The function is **idempotent** and won't do anything after the first call.
+`Init` is the entry point for interacting with SVM in any way. It runs internal
+initialization logic; it is fully thread-safe and idempotent.
 
 ```go
 
-func Init(inMemory bool, path string) error
+func Init() (*API, error)
 ```
 
 ### Creating a Runtime
@@ -237,7 +237,7 @@ Creates a new `SVM Runtime`. You can think of it as opening a connection to `SVM
 Here is the `Create Runtime` API:
 
 ```go
-func NewRuntime() (*Runtime, error)
+func (*API) NewRuntime() (*Runtime, error)
 ```
 
 ### Destroying a Runtime
@@ -488,7 +488,7 @@ This helper function is intended to be used for testing purposes. However, it co
 The API:
 
 ```go
-func RuntimesCount() int
+func (*API) RuntimesCount() int
 ```
 
 ### Receipts Count
@@ -502,7 +502,7 @@ The helper should be applied for testing purposes. However, the production code 
 The API:
 
 ```go
-func ReceiptsCount()
+func (*API) ReceiptsCount() int
 ```
 
 ### Errors Count

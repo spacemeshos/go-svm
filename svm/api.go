@@ -20,37 +20,23 @@ type svmParams struct {
 var initialized = false
 var initializedGuard = sync.Mutex{}
 
-// `Init` must be called at least once before interacting with any other API of SVM.
-// Each future call to `NewRuntime` (see later) assumes the settings given the `Init` call.
-//
-// Please note that this function is idempotent and won't do anything after the
-// first call.
-//
-// # Params
-//
-// * `inMemory` - whether the data of the `SVM Global State` will be in-memory or persisted.
-// * `path` 	- the path under which `SVM Global State` will store its content.
-//   This is relevant only when `isMemory=false` (otherwise the `path` value will be ignored).
-//
-// # Returns
-//
-// Returns an error in case the initialization has failed.
-func Init(inMemory bool, path string) error {
+// Allows for creating new SVM runtime instances via NewRuntime.
+type API struct{}
+
+// Init is the entry point for interacting with SVM. It runs SVM initialization
+// logic; it is fully thread-safe and idempotent.
+func Init() (*API, error) {
 	initializedGuard.Lock()
 	defer initializedGuard.Unlock()
-	if initialized {
-		return nil
-	}
 
-	bytes := ([]byte)(path)
-	rawPath := (*C.uchar)(unsafe.Pointer(&bytes))
-	pathLen := (C.uint32_t)(uint32(len(path)))
-	res := C.svm_init((C.bool)(inMemory), rawPath, pathLen)
+	initialized = true
+
+	res := C.svm_init()
 	if _, err := copySvmResult(res); err != nil {
-		panic("Init has failed!")
+		return nil, err
 	}
 
-	return nil
+	return &API{}, nil
 }
 
 // Asserts that `Init` has already been called.
@@ -59,6 +45,9 @@ func Init(inMemory bool, path string) error {
 //
 // Panics when `Init` has **NOT** been previously called.
 func AssertInitialized() {
+	initializedGuard.Lock()
+	defer initializedGuard.Unlock()
+
 	if !initialized {
 		panic("Forgot to call `Init`")
 	}
@@ -66,24 +55,36 @@ func AssertInitialized() {
 
 // `NewRuntime` creates a new `Runtime`.
 //
+// # Params
+//
+// * `inMemory` - whether the data of the `SVM Global State` will be in-memory or persisted.
+// * `path` 	- the path under which `SVM Global State` will store its content.
+//   This is relevant only when `isMemory=false` (otherwise the `path` value will be ignored).
+//
 // On success returns it and the `error` is set to `nil`.
 // On failure returns `(nil, error).
-func NewRuntime() (*Runtime, error) {
+func (*API) NewRuntime(inMemory bool, path string) (*Runtime, error) {
 	rt := &Runtime{}
-	res := C.svm_runtime_create(&rt.raw)
+
+	var res C.svm_result_t
+	if inMemory {
+		res = C.svm_runtime_create(&rt.raw, nil, 0)
+	} else {
+		bytes := ([]byte)(path)
+		rawPath := (*C.uchar)(unsafe.Pointer(&bytes))
+		pathLen := (C.uint32_t)(uint32(len(path)))
+		res = C.svm_runtime_create(&rt.raw, rawPath, pathLen)
+	}
 	_, err := copySvmResult(res)
 
 	return rt, err
 }
 
-func RuntimesCount() int {
-	count := C.uint64_t(0)
-	C.svm_runtimes_count(&count)
-
-	return int(count)
+func (*API) RuntimesCount() int {
+	return int(C.svm_runtimes_count())
 }
 
-func ReceiptsCount() int {
+func (*API) ReceiptsCount() int {
 	// TODO
 	return 0
 	// count := C.uint32(0)
@@ -297,13 +298,10 @@ func (rt *Runtime) Commit() (Layer, State, error) {
 //
 // Returns a `(nil, error)` in case the requested `Account` doesn't exist.
 func (rt *Runtime) GetAccount(addr Address) (Account, error) {
-	var balance C.uint64_t
-	var counterUpperBits C.uint64_t
-	var counterLowerBits C.uint64_t
-	templateAddr := (*C.uchar)(unsafe.Pointer(&TemplateAddr{}))
+	var account C.svm_account
 	addrRaw := (*C.uchar)(unsafe.Pointer(&addr[0]))
 
-	res := C.svm_get_account(rt.raw, addrRaw, &balance, &counterUpperBits, &counterLowerBits, templateAddr)
+	res := C.svm_get_account(rt.raw, addrRaw, &account)
 
 	_, err := copySvmResult(res)
 	if err != nil {
@@ -312,10 +310,10 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 
 	return Account{
 		Addr:    addr,
-		Balance: Amount(balance),
+		Balance: Amount(account.balance),
 		Counter: TxNonce{
-			Upper: uint64(counterUpperBits),
-			Lower: uint64(counterLowerBits),
+			Upper: uint64(account.counter_upper_bits),
+			Lower: uint64(account.counter_lower_bits),
 		},
 	}, nil
 }
