@@ -14,9 +14,10 @@ func readFile(t *testing.T, path string) []byte {
 }
 
 func runtimeSetup(t *testing.T) *Runtime {
-	Init(true, "")
+	api, err := Init()
+	assert.Nil(t, err)
 
-	rt, err := NewRuntime()
+	rt, err := api.NewRuntime(true, "")
 	assert.NotNil(t, rt)
 	assert.Nil(t, err)
 
@@ -83,20 +84,21 @@ func call(t *testing.T, rt *Runtime, path string, params *TestParams) (*CallRece
 	return receipt.(*CallReceipt), err
 }
 
-func TestInitMemoryNilErr(t *testing.T) {
-	assert.Equal(t, 0, RuntimesCount())
-	err := Init(true, "")
+func TestInitNilErr(t *testing.T) {
+	_, err := Init()
 	assert.Nil(t, err)
-	assert.Equal(t, 0, RuntimesCount())
 }
 
 func TestNewRuntime(t *testing.T) {
-	assert.Equal(t, 0, RuntimesCount())
+	api, err := Init()
+	assert.Nil(t, err)
+
+	assert.Equal(t, 0, api.RuntimesCount())
 	rt := runtimeSetup(t)
 
-	assert.Equal(t, 1, RuntimesCount())
+	assert.Equal(t, 1, api.RuntimesCount())
 	rt.Destroy()
-	assert.Equal(t, 0, RuntimesCount())
+	assert.Equal(t, 0, api.RuntimesCount())
 }
 
 func TestValidateEmptyDeploy(t *testing.T) {

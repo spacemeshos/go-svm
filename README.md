@@ -1,59 +1,18 @@
-# go-svm README
+# `go-svm`
+
+![https://img.shields.io/badge/godoc-go-svm-5272B4.svg](https://pkg.go.dev/github.com/spacemeshos/go-svm/svm)
 
 The Golang client for [`SVM`](https://github.com/spacemeshos/svm). Its primary goal is supplying an ergonomic API for [`go-spacemesh`](https://github.com/spacemeshos/go-spacemesh)
 
-<br>
-
 ## Installation
-
-### Grab your GitHub Personal Access Token
-
-You'll need a GitHub Token in order to continue with the installation.
-The reason for that is that SVM currently has no official releases (public release can be downloaded without access token).
-The access token is required for using the GitHub Actions API for downloading the latest SVM successful build artifacts.
-
-There are two options for getting your personal access token:
-
-- [GitHub Personal access tokens](https://github.com/settings/tokens)
-  You'll need click the `Generate new token` button.
-  No need to check anything under the `Select scopes` section.
-- [Github CLI](https://github.com/cli/cli)
-  Once you've logged-in to the CLI, just run the command:
-  ```bash
-  gh auth status --show-token
-  ```
-  The last output line will look like:
-  ```bash
-  ✓ Token: **HERE_IS_YOUR_ACCESS_TOKEN**
-  ```
-
-### go-svm Installation
-
-For installing `go-svm` please follow these instructions:
 
 ```bash
 git clone https://github.com/spacemeshos/go-svm
 cd go-svm
-GITHUB_TOKEN=YOUR_TOKEN go run mage.go install
+make
+make test # Optional. Rerun if you want to test any changes to `go-svm`.
+make install
 ```
-
-## Building
-
-Building `go-svm` requires executing:
-
-```go
-go run mage.go build
-```
-
-## Testing
-
-It's also very easy to run the `go-svm` tests, just type:
-
-```go
-go run mage.go test
-```
-
-<br>
 
 ## Structs
 
@@ -262,12 +221,12 @@ svm-cli tx --tx-type=call --input=tx.json --output=tx.bin
 
 ### Init
 
-`Init` must be called at least once before interacting with any other API.
-The function is **idempotent** and won't do anything after the first call.
+`Init` is the entry point for interacting with SVM in any way. It runs internal
+initialization logic; it is fully thread-safe and idempotent.
 
 ```go
 
-func Init(inMemory bool, path string) error
+func Init() (*API, error)
 ```
 
 ### Creating a Runtime
@@ -278,7 +237,7 @@ Creates a new `SVM Runtime`. You can think of it as opening a connection to `SVM
 Here is the `Create Runtime` API:
 
 ```go
-func NewRuntime() (*Runtime, error)
+func (*API) NewRuntime() (*Runtime, error)
 ```
 
 ### Destroying a Runtime
@@ -529,7 +488,7 @@ This helper function is intended to be used for testing purposes. However, it co
 The API:
 
 ```go
-func RuntimesCount() int
+func (*API) RuntimesCount() int
 ```
 
 ### Receipts Count
@@ -543,7 +502,7 @@ The helper should be applied for testing purposes. However, the production code 
 The API:
 
 ```go
-func ReceiptsCount()
+func (*API) ReceiptsCount() int
 ```
 
 ### Errors Count
