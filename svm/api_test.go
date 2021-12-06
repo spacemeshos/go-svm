@@ -216,6 +216,10 @@ func TestSpawnSuccess(t *testing.T) {
 	assert.Equal(t, true, receipt.Success)
 	assert.NotNil(t, receipt.InitState)
 	assert.NotNil(t, receipt.AccountAddr)
+
+	assert.Len(t, receipt.TouchedAccounts, 2)
+	assert.Contains(t, receipt.TouchedAccounts, receipt.AccountAddr)
+	assert.Contains(t, receipt.TouchedAccounts, Address{})
 }
 
 func TestCallValidateInvalid(t *testing.T) {
@@ -339,6 +343,10 @@ func TestCallSuccess(t *testing.T) {
 	receipt, err := call(t, rt, "inputs/call/store_addr.json.bin", NewTestParams())
 	assert.Nil(t, err)
 	assert.Equal(t, true, receipt.Success)
+
+	targetAddr := Address{0x06, 0x68, 0x18, 0xab, 0xe3, 0x61, 0xdd, 0x44, 0xf4, 0x25, 0xda, 0x19, 0xe1, 0x7c, 0x45, 0xba, 0xbc, 0x40, 0xe2, 0x32}
+	assert.Len(t, receipt.TouchedAccounts, 1)
+	assert.Contains(t, receipt.TouchedAccounts, targetAddr)
 
 	receipt, err = call(t, rt, "inputs/call/load_addr.json.bin", NewTestParams())
 	assert.Nil(t, err)
