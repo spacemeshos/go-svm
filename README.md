@@ -1,4 +1,6 @@
-# go-svm README
+# `go-svm`
+
+![https://img.shields.io/badge/godoc-go-svm-5272B4.svg](https://pkg.go.dev/github.com/spacemeshos/go-svm/svm)
 
 The Golang client for [`SVM`](https://github.com/spacemeshos/svm). Its primary goal is supplying an ergonomic API for [`go-spacemesh`](https://github.com/spacemeshos/go-spacemesh)
 
