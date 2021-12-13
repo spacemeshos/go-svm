@@ -17,8 +17,9 @@ const (
 	InstantiationFailed  RuntimeErrorKind = 4
 	FuncNotFound         RuntimeErrorKind = 5
 	FuncFailed           RuntimeErrorKind = 6
-	FuncNotAllowed       RuntimeErrorKind = 7
-	FuncInvalidSignature RuntimeErrorKind = 8
+	FuncNotCtor          RuntimeErrorKind = 7
+	FuncNotAllowed       RuntimeErrorKind = 8
+	FuncInvalidSignature RuntimeErrorKind = 9
 )
 
 type ValidateError struct {
