@@ -290,7 +290,7 @@ func TestSpawnNonexistentCtor(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, receipt.Success)
 	assert.NotNil(t, receipt.Error)
-	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotAllowed))
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotCtor))
 }
 
 func TestSpawnCtorExistsButInvalid(t *testing.T) {
@@ -303,7 +303,7 @@ func TestSpawnCtorExistsButInvalid(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, receipt.Success)
 	assert.NotNil(t, receipt.Error)
-	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotAllowed))
+	assert.Equal(t, receipt.Error.Kind, RuntimeErrorKind(FuncNotCtor))
 }
 
 func TestCallNonexistentFunc(t *testing.T) {

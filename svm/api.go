@@ -319,7 +319,7 @@ func (rt *Runtime) GetAccount(addr Address) (Account, error) {
 }
 
 func (rt *Runtime) CreateAccount(account Account) error {
-	res := C.svm_create_account(
+	res := C.svm_create_genesis_account(
 		rt.raw,
 		(*C.uchar)(unsafe.Pointer(&account.Addr[0])),
 		C.uint64_t(account.Balance),

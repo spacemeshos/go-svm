@@ -89,6 +89,12 @@ func decodeRuntimeError(bytes []byte) (*RuntimeError, []Log, error) {
 		rtError.Target = target
 		rtError.Function = function
 		return rtError, logs, nil
+	case RuntimeErrorKind(FuncNotCtor):
+		template, bytes := decodeAddress(bytes)
+		function, bytes := decodeString(bytes)
+		rtError.Template = template
+		rtError.Function = function
+		return rtError, logs, nil
 	case RuntimeErrorKind(FuncFailed), RuntimeErrorKind(FuncNotAllowed):
 		template, bytes := decodeAddress(bytes)
 		target, bytes := decodeAddress(bytes)
